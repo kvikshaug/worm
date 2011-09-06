@@ -27,8 +27,6 @@ class ORM {
             commaize(fields.map(_.value))))
   }
 
-  // mulig jeg må omstrukturere denne, er ikke 100% sikker på alle use cases.
-  // men for now returnerer vi bare en tuple med strings; navn og value.toString.
   /* This is based on conventions.
      For java classes, we assume that a field 'foo' will have use a 'getFoo' method.
      For scala classes, we assume that each field will have a corresponding method with
