@@ -15,7 +15,7 @@ class ORM {
   val __ormstate__ = new State(false)
 
   def create() = {
-    val fields = this.getClass.getDeclaredFields.map(f => retrieveField(f)).filter(_.isDefined).map(_.get)
+    val fields = this.getClass.getDeclaredFields.map(f => retrieveField(f)).flatten
     println(String.format("insert into `%s` (%s) values (%s)",
             this.getClass.getSimpleName,
             commaize(fields.map(_.name)),
