@@ -13,7 +13,14 @@ class ORM {
   private class State(saved: Boolean)
   private val __ormstate__ = new State(false)
 
+  @throws(classOf[IllegalStateException])
   def create() = {
+    if(__ormstate__.saved) {
+      throw new IllegalStateException("This object already exists in the database.")
+    }
+  }
+
+  def fields() = {
     val fields = this.getClass.getDeclaredFields.map(f => retrieveField(f)).flatten
     println(String.format("insert into `%s` (%s) values (%s)",
             this.getClass.getSimpleName,
