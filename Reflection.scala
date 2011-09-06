@@ -10,13 +10,14 @@ object ORM {
 }
 
 class ORM {
-  private class State(saved: Boolean)
-  private val __ormstate__ = new State(false)
+  private case class State(id: Option[Long])
+  private val __ormstate__ = new State(None)
 
   @throws(classOf[IllegalStateException])
   def create() = {
-    if(__ormstate__.saved) {
-      throw new IllegalStateException("This object already exists in the database.")
+    if(__ormstate__.id.isDefined) {
+      throw new IllegalStateException("This object already exists in the database, its ID is: " +
+        __ormstate__.id.get + ".")
     }
   }
 
