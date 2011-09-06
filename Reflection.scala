@@ -10,15 +10,14 @@ object ORM {
 }
 
 class ORM {
-  private case class State(id: Option[Long])
-  private val __ormstate__ = new State(None)
+  private var id: Option[Long] = None
   private def fields = this.getClass.getDeclaredFields.map(f => retrieveField(f)).flatten.toList
 
   @throws(classOf[IllegalStateException])
   def insert() = {
-    if(__ormstate__.id.isDefined) {
+    if(id.isDefined) {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
-        __ormstate__.id.get + ".")
+        id.get + ".")
     }
     val fields = this.fields
     println(String.format("insert into `%s` (%s) values (%s)",
@@ -29,11 +28,11 @@ class ORM {
 
   @throws(classOf[IllegalStateException])
   def update() = {
-    if(__ormstate__.id.isEmpty) {
+    if(id.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
     val fields = this.fields
-    println(String.format("update `%s` set (%s) where id=`" + __ormstate__.id.get + "`",
+    println(String.format("update `%s` set (%s) where id=`" + id.get + "`",
             this.getClass.getSimpleName,
             fields.map(f => f.name + "=" + f.value + ", ")))
   }
