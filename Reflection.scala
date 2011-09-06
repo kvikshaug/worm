@@ -37,7 +37,7 @@ class ORM {
   }
 
   /* This is based on conventions.
-     For java classes, we assume that a field 'foo' will have use a 'getFoo' method.
+     For java classes, we assume that a field 'foo' will have a 'getFoo' method.
      For scala classes, we assume that each field will have a corresponding method with
      the same name. We don't know which is which, we just test for both. */
   def retrieveField(field: JVMField): Option[Field] = {
