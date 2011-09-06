@@ -10,9 +10,8 @@ object ORM {
 }
 
 class ORM {
-  class State(saved: Boolean)
-
-  val __ormstate__ = new State(false)
+  private class State(saved: Boolean)
+  private val __ormstate__ = new State(false)
 
   def create() = {
     val fields = this.getClass.getDeclaredFields.map(f => retrieveField(f)).flatten
