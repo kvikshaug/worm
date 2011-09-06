@@ -12,6 +12,7 @@ object ORM {
 class ORM {
   private case class State(id: Option[Long])
   private val __ormstate__ = new State(None)
+  private def fields = this.getClass.getDeclaredFields.map(f => retrieveField(f)).flatten.toList
 
   @throws(classOf[IllegalStateException])
   def insert() = {
@@ -19,10 +20,7 @@ class ORM {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         __ormstate__.id.get + ".")
     }
-  }
-
-  def fields() = {
-    val fields = this.getClass.getDeclaredFields.map(f => retrieveField(f)).flatten
+    val fields = this.fields
     println(String.format("insert into `%s` (%s) values (%s)",
             this.getClass.getSimpleName,
             commaize(fields.map(_.name)),
@@ -51,7 +49,6 @@ class ORM {
     return None
   }
 
-  def commaize(array: Array[_ <: Any]): String = commaize(array.toList)
   def commaize(list: List[_ <: Any]): String = list match {
     case List()  => ""
     case List(x) => x.toString
