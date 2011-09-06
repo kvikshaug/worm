@@ -4,6 +4,6 @@ public class JRunner {
 		//t.create();
 
 		OtherTester ot = new OtherTester("goodbye world", 1337);
-		ot.create();
+		ot.insert();
 	}
 }

@@ -14,7 +14,7 @@ class ORM {
   private val __ormstate__ = new State(None)
 
   @throws(classOf[IllegalStateException])
-  def create() = {
+  def insert() = {
     if(__ormstate__.id.isDefined) {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         __ormstate__.id.get + ".")
@@ -62,7 +62,7 @@ class ORM {
 object Runner {
   def main(args: Array[String]) {
     val orm = Tester("hello", 2)
-    orm.create
+    orm.insert
     ORM.get
   }
 }
