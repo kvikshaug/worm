@@ -52,18 +52,6 @@ class ORM {
   }
 }
 
-class ToExtend {
-  // semantic definitions
-  val notInserted = false
-  val inserted = true
-
-  var idState = notInserted
-
-  def insert() {
-    
-  }
-}
-
 object Runner {
   def main(args: Array[String]) {
     val orm = Tester("hello", 2)
