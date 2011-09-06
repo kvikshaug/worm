@@ -27,6 +27,17 @@ class ORM {
             commaize(fields.map(_.value))))
   }
 
+  @throws(classOf[IllegalStateException])
+  def update() = {
+    if(__ormstate__.id.isEmpty) {
+      throw new IllegalStateException("This object doesn't exist in the database!")
+    }
+    val fields = this.fields
+    println(String.format("update `%s` set (%s) where id=`" + __ormstate__.id.get + "`",
+            this.getClass.getSimpleName,
+            fields.map(f => f.name + "=" + f.value + ", ")))
+  }
+
   /* This is based on conventions.
      For java classes, we assume that a field 'foo' will have use a 'getFoo' method.
      For scala classes, we assume that each field will have a corresponding method with
