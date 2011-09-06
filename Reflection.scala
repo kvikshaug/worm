@@ -10,7 +10,7 @@ object ORM {
 }
 
 class ORM {
-  class State(c: Class, saved: Boolean)
+  class State(saved: Boolean)
 
   val __ormstate__ = new State(false)
 
