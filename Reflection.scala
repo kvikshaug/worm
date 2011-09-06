@@ -1,4 +1,3 @@
-import java.lang.Class
 import java.lang.reflect.{Field => JVMField}
 
 case class Tester(foo: String, hmm: Int) extends ORM
