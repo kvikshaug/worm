@@ -11,20 +11,25 @@ object SQL {
     connection = Some(DriverManager.getConnection(jdbcURL))
   }
 
+  def ensureConnected = {
+    if(connection isEmpty) {
+      throw new NotConnectedException("You need to connect to the database before using it.")
+    }
+  }
+
   def selectAll(table: String) = {
     // todo - sanitize table String - SQL injection
+    ensureConnected
     executeSelect(connection.get.prepareStatement("select * from `" + table + "`"))
   }
 
   def selectID(table: String, id: Long) = {
     // todo - sanitize table String - SQL injection
+    ensureConnected
     executeSelect(connection.get.prepareStatement("select * from `" + table + "` where id=`" + id + "`"))
   }
 
   private def executeSelect(statement: PreparedStatement) = {
-    if(connection isEmpty) {
-      throw new Exception("TODO some better exception")
-    }
     statement.execute
     val resultset = statement.getResultSet()
     println(resultset.getMetaData().getColumnCount())
