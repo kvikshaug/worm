@@ -37,6 +37,16 @@ class SQL(val driver: String, val jdbcURL: String) {
     statement.execute
   }
 
+  def update(table: String, id: Long, fields: List[Field]) {
+    val query = String.format("update '%s' set %s where id='%s';",
+      table,
+      dualize(fields),
+      id.toString)
+    val statement = connection.prepareStatement(query)
+    statement.execute
+  }
+
+
   private def returnQuery(query: String) = {
     val rows = executeSelect(connection.prepareStatement(query))
     if(rows.size == 1)
@@ -61,5 +71,17 @@ class SQL(val driver: String, val jdbcURL: String) {
     case List()  => ""
     case List(x) => x.toString
     case _       => list(0) + ", " + commaize(list.tail)
+  }
+
+  private def dualize(fields: List[Field]): String = {
+    val sb = new StringBuilder
+    for(i <- 0 until fields.size) {
+      if(i == fields.size - 1) {
+        sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("'")
+      } else {
+        sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("',")
+      }
+    }
+    sb.toString
   }
 }

@@ -74,10 +74,7 @@ class ORM {
     if(id.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val fields = this.fields
-    println(String.format("update `%s` set (%s) where id=`" + id.get + "`",
-            c.getSimpleName,
-            fields.map(f => f.name + "=" + f.value + ", ")))
+    ORM.sql.get.update(c.getSimpleName, id.get, fields)
   }
 
   /* This is based on conventions.
