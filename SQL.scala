@@ -27,7 +27,7 @@ class SQL(val driver: String, val jdbcURL: String) {
     returnQuery(String.format("select * from '%s' where %s;", table, whereClause))
   }
 
-  def insert(table: String, fields: List[Field]) {
+  def insert(table: String, fields: List[Field]) = {
     // todo - sanitize table String AND all fields - SQL injection
     val query = String.format("insert into '%s' (%s) values (%s);",
         table,
@@ -35,6 +35,12 @@ class SQL(val driver: String, val jdbcURL: String) {
         commaize(fields.map("'" + _.value + "'")))
     val statement = connection.prepareStatement(query)
     statement.execute
+    val key = statement.getGeneratedKeys
+    if(key.next) {
+      Some(key.getObject(1).asInstanceOf[Int].toLong)
+    } else {
+      None
+    }
   }
 
   def update(table: String, id: Long, fields: List[Field]) = {

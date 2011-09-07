@@ -1,4 +1,5 @@
 import java.lang.reflect.{Field => JVMField}
+import java.sql.SQLException
 
 case class Field(name: String, value: Any)
 
@@ -63,7 +64,14 @@ class ORM {
         id.get + ".")
     }
     val fields = this.fields
-    ORM.sql.get.insert(c.getSimpleName, fields)
+    val key = ORM.sql.get.insert(c.getSimpleName, fields)
+    if(key isEmpty) {
+      throw new SQLException("The SQL driver didn't throw any exception, but it also said that no keys were inserted!\n" +
+      "Not really sure how that happened, or what I (the ORM) can do about it.")
+    } else {
+      id = Some(key.get)
+      id
+    }
   }
 
   @throws(classOf[IllegalStateException])
