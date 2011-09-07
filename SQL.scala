@@ -5,11 +5,17 @@ case class Row(id: Long, values: List[AnyRef])
 class SQL(val driver: String, val jdbcURL: String) {
 
   Class.forName(driver)
-  val connection = DriverManager.getConnection(jdbcURL)
+  private var connection = DriverManager.getConnection(jdbcURL)
 
   def disconnect = connection.close
 
-  def ensureConnected = {
+  // The time in seconds to wait for the database operation used to validate the connection to complete.
+  private val timeout = 10
+
+  private def ensureConnected = {
+    if(!connection.isValid(timeout)) {
+      connection = DriverManager.getConnection(jdbcURL)
+    }
   }
 
   def selectAll(table: String) = {
