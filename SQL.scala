@@ -7,6 +7,8 @@ class SQL(val driver: String, val jdbcURL: String) {
   Class.forName(driver)
   val connection = DriverManager.getConnection(jdbcURL)
 
+  def disconnect = connection.close
+
   def ensureConnected = {
   }
 

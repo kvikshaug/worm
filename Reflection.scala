@@ -8,6 +8,8 @@ object ORM {
     sql = Some(new SQL(driver, jdbcURL))
   }
 
+  def disconnect { if(sql isDefined) { sql.get.disconnect; sql = None } }
+
   def get[T <: ORM: ClassManifest]: List[T] = {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
