@@ -14,17 +14,17 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   def selectAll(table: String) = {
     // todo - sanitize table String - SQL injection
-    executeSelect(connection.prepareStatement("select * from '" + table + "'"))
+    executeSelect(connection.prepareStatement(String.format("select * from '%s';", table)))
   }
 
   def selectID(table: String, id: Long) = {
     // todo - sanitize table String - SQL injection (also, it's not used)
-    returnQuery("select * from '" + table + "' where id='" + id + "'")
+    returnQuery(String.format("select * from '%s' where id='%s';", table, id.toString))
   }
 
   def selectWhere(table: String, whereClause: String) = {
     // todo - sanitize table String AND whereClause String - SQL injection
-    returnQuery("select * from '" + table + "' where " + whereClause + ";")
+    returnQuery(String.format("select * from '%s' where %s;", table, whereClause))
   }
 
   def insert(table: String, fields: List[Field]) {
