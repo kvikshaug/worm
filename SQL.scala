@@ -2,14 +2,10 @@ import java.sql._
 
 case class Row(id: Long, values: List[AnyRef])
 
-object SQL {
+class SQL(val driver: String, val jdbcURL: String) {
 
-  var connection: Option[Connection] = None
-
-  def connect(driver: String, jdbcURL: String) = {
-    Class.forName(driver)
-    connection = Some(DriverManager.getConnection(jdbcURL))
-  }
+  Class.forName(driver)
+  val connection = Some(DriverManager.getConnection(jdbcURL))
 
   def ensureConnected = {
     if(connection isEmpty) {

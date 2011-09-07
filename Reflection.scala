@@ -3,11 +3,11 @@ import java.lang.reflect.{Field => JVMField}
 case class Field(name: String, value: Any)
 
 object ORM {
+  val sql = new SQL("org.sqlite.JDBC", "jdbc:sqlite:test.db")
   def get[T <: ORM: ClassManifest]: List[T] = {
     // TODO connect everywhere, throw exception if fail? or something?
-    SQL.connect("org.sqlite.JDBC", "jdbc:sqlite:test.db")
     // fields should be retrieved from db
-    val rows = SQL.selectAll(classManifest[T].erasure.getName)
+    val rows = sql.selectAll(classManifest[T].erasure.getName)
     val constructor = classManifest[T].erasure.getConstructors()(0)
     val objects = rows.map { row =>
       val obj = constructor.newInstance(row.values: _*).asInstanceOf[T]
