@@ -37,13 +37,14 @@ class SQL(val driver: String, val jdbcURL: String) {
     statement.execute
   }
 
-  def update(table: String, id: Long, fields: List[Field]) {
+  def update(table: String, id: Long, fields: List[Field]) = {
     val query = String.format("update '%s' set %s where id='%s';",
       table,
       dualize(fields),
       id.toString)
     val statement = connection.prepareStatement(query)
     statement.execute
+    statement.getUpdateCount
   }
 
 
