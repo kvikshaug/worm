@@ -3,11 +3,16 @@ import java.lang.reflect.{Field => JVMField}
 case class Field(name: String, value: Any)
 
 object ORM {
-  val sql = new SQL("org.sqlite.JDBC", "jdbc:sqlite:test.db")
+  var sql: Option[SQL] = None
+  def connect(driver: String, jdbcURL: String) {
+    sql = Some(new SQL(driver, jdbcURL))
+  }
+
   def get[T <: ORM: ClassManifest]: List[T] = {
-    // TODO connect everywhere, throw exception if fail? or something?
-    // fields should be retrieved from db
-    val rows = sql.selectAll(classManifest[T].erasure.getName)
+    if(sql isEmpty) {
+      throw new NotConnectedException("You need to connect to the database before using it.")
+    }
+    val rows = sql.get.selectAll(classManifest[T].erasure.getName)
     val constructor = classManifest[T].erasure.getConstructors()(0)
     val objects = rows.map { row =>
       val obj = constructor.newInstance(row.values: _*).asInstanceOf[T]
@@ -30,6 +35,9 @@ class ORM {
 
   @throws(classOf[IllegalStateException])
   def insert() = {
+    if(ORM.sql isEmpty) {
+      throw new NotConnectedException("You need to connect to the database before using it.")
+    }
     if(id.isDefined) {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         id.get + ".")
@@ -43,6 +51,9 @@ class ORM {
 
   @throws(classOf[IllegalStateException])
   def update() = {
+    if(ORM.sql isEmpty) {
+      throw new NotConnectedException("You need to connect to the database before using it.")
+    }
     if(id.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }

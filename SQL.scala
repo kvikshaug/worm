@@ -5,24 +5,21 @@ case class Row(id: Long, values: List[AnyRef])
 class SQL(val driver: String, val jdbcURL: String) {
 
   Class.forName(driver)
-  val connection = Some(DriverManager.getConnection(jdbcURL))
+  val connection = DriverManager.getConnection(jdbcURL)
 
   def ensureConnected = {
-    if(connection isEmpty) {
-      throw new NotConnectedException("You need to connect to the database before using it.")
-    }
   }
 
   def selectAll(table: String) = {
     // todo - sanitize table String - SQL injection
     ensureConnected
-    executeSelect(connection.get.prepareStatement("select * from `" + table + "`"))
+    executeSelect(connection.prepareStatement("select * from `" + table + "`"))
   }
 
   def selectID(table: String, id: Long) = {
     // todo - sanitize table String - SQL injection
     ensureConnected
-    executeSelect(connection.get.prepareStatement("select * from `" + table + "` where id=`" + id + "`"))
+    executeSelect(connection.prepareStatement("select * from `" + table + "` where id=`" + id + "`"))
   }
 
   private def executeSelect(statement: PreparedStatement) = {
