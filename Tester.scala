@@ -4,8 +4,7 @@ object Runner {
   def main(args: Array[String]) {
     val orm = Tester("hello", 2)
     orm.insert
-    val t = ORM.get[Tester]
-    println(t)
-    println(t.getClass)
+    val list = ORM.get[Tester]
+    list foreach println
   }
 }
