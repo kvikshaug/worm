@@ -1,9 +1,14 @@
 import java.lang.reflect.{Field => JVMField}
 
-case class Field(name: String, value: String)
+case class Field(name: String, value: Any)
 
 object ORM {
-  def get = println("you got!")
+  def get[T]: T = {
+    // fields should be retrieved from db
+    val fields = List(Field("foo", "hello"), Field("hmm", 2))
+    val c = classOf[Tester].getConstructors()(0)
+    return c.newInstance(fields.map(_.value.asInstanceOf[AnyRef]): _*).asInstanceOf[T]
+  }
 }
 
 class ORM {
