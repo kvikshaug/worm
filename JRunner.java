@@ -3,7 +3,7 @@ public class JRunner {
 		//Tester t = new Tester("hello world", 42);
 		//t.create();
 
-		OtherTester ot = new OtherTester("goodbye world", 1337);
-		ot.insert();
+		JTester jt = new JTester("goodbye world", 1337);
+		jt.insert();
 	}
 }

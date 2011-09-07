@@ -1,8 +1,8 @@
-public class OtherTester extends ORM {
+public class JTester extends ORM {
 	private String far;
 	private int baz;
 
-	public OtherTester(String far, int baz) {
+	public JTester(String far, int baz) {
 		this.far = far;
 		this.baz = baz;
 	}
