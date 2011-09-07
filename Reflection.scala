@@ -3,10 +3,10 @@ import java.lang.reflect.{Field => JVMField}
 case class Field(name: String, value: Any)
 
 object ORM {
-  def get[T]: T = {
+  def get[T: ClassManifest]: T = {
     // fields should be retrieved from db
     val fields = List(Field("foo", "hello"), Field("hmm", 2))
-    val c = classOf[Tester].getConstructors()(0)
+    val c = classManifest[T].erasure.getConstructors()(0)
     return c.newInstance(fields.map(_.value.asInstanceOf[AnyRef]): _*).asInstanceOf[T]
   }
 }
