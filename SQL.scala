@@ -18,8 +18,17 @@ class SQL(val driver: String, val jdbcURL: String) {
   }
 
   def selectID(table: String, id: Long) = {
-    // todo - sanitize table String - SQL injection
-    val rows = executeSelect(connection.prepareStatement("select * from '" + table + "' where id='" + id + "'"))
+    // todo - sanitize table String - SQL injection (also, it's not used)
+    returnQuery("select * from '" + table + "' where id='" + id + "'")
+  }
+
+  def selectWhere(table: String, whereClause: String) = {
+    // todo - sanitize table String AND whereClause String - SQL injection
+    returnQuery("select * from '" + table + "' where " + whereClause + ";")
+  }
+
+  private def returnQuery(query: String) = {
+    val rows = executeSelect(connection.prepareStatement(query))
     if(rows.size == 1)
       Some(rows(0))
     else

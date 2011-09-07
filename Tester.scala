@@ -7,6 +7,8 @@ object Runner {
     orm.insert
     val test1 = ORM.get[Tester](1)
     println("Should be row 1: " + test1)
+    val test2 = ORM.getWhere[Tester]("foo='OMG'")
+    println("Should be OMG: " + test2)
     val list = ORM.get[Tester]
     list foreach println
     ORM.disconnect

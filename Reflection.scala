@@ -11,10 +11,14 @@ object ORM {
   def disconnect { if(sql isDefined) { sql.get.disconnect; sql = None } }
 
   def get[T <: ORM: ClassManifest](id: Long): Option[T] = {
+    getWhere[T]("id='" + id + "'")
+  }
+
+  def getWhere[T <: ORM: ClassManifest](whereClause: String): Option[T] = {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val row = sql.get.selectID(classManifest[T].erasure.getName, id)
+    val row = sql.get.selectWhere(classManifest[T].erasure.getName, whereClause)
     if(row isEmpty) {
       return None
     }
