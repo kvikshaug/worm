@@ -6,8 +6,6 @@ object SQL {
 
   var connection: Option[Connection] = None
 
-  @throws(classOf[ClassNotFoundException])
-  @throws(classOf[SQLException])
   def connect(driver: String, jdbcURL: String) = {
     Class.forName("org.sqlite.JDBC")
     connection = Some(DriverManager.getConnection(jdbcURL))
