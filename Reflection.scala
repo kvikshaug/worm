@@ -1,7 +1,5 @@
 import java.lang.reflect.{Field => JVMField}
 
-case class Tester(foo: String, hmm: Int) extends ORM
-
 case class Field(name: String, value: String)
 
 object ORM {
@@ -60,13 +58,5 @@ class ORM {
     case List()  => ""
     case List(x) => x.toString
     case _       => list(0) + ", " + commaize(list.tail)
-  }
-}
-
-object Runner {
-  def main(args: Array[String]) {
-    val orm = Tester("hello", 2)
-    orm.insert
-    ORM.get
   }
 }
