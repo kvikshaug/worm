@@ -33,7 +33,8 @@ class SQL(val driver: String, val jdbcURL: String) {
         table,
         commaize(fields.map("'" + _.name + "'")),
         commaize(fields.map("'" + _.value + "'")))
-    println(query)
+    val statement = connection.prepareStatement(query)
+    statement.execute
   }
 
   private def returnQuery(query: String) = {
