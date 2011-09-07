@@ -44,7 +44,7 @@ class ORM {
      For java classes, we assume that a field 'foo' will have a 'getFoo' method.
      For scala classes, we assume that each field will have a corresponding method with
      the same name. We don't know which is which, we just test for both. */
-  def retrieveField(field: JVMField): Option[Field] = {
+  private def retrieveField(field: JVMField): Option[Field] = {
     def asGetter(s: String) = "get" + s(0).toUpper + s.tail
     // check for getter
     val getter = c.getMethods.find(_.getName == asGetter(field.getName))
