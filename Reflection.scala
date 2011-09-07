@@ -3,11 +3,15 @@ import java.lang.reflect.{Field => JVMField}
 case class Field(name: String, value: Any)
 
 object ORM {
-  def get[T: ClassManifest]: T = {
+  def get[T <: ORM: ClassManifest]: T = {
+    // TODO connect everywhere, throw exception if fail? or something?
+    SQL.connect("org.sqlite.JDBC", "jdbc:sqlite:test.db")
     // fields should be retrieved from db
-    val fields = List(Field("foo", "hello"), Field("hmm", 2))
-    val c = classManifest[T].erasure.getConstructors()(0)
-    return c.newInstance(fields.map(_.value.asInstanceOf[AnyRef]): _*).asInstanceOf[T]
+    val fields = SQL.select(classManifest[T].erasure.getName)
+    val constructor = classManifest[T].erasure.getConstructors()(0)
+    val obj = constructor.newInstance(fields: _*).asInstanceOf[T]
+    obj.__setid__(fields(0).asInstanceOf[Long])
+    return obj
   }
 }
 
@@ -15,6 +19,11 @@ class ORM {
   private val c = this.getClass
   private var id: Option[Long] = None
   private def fields = c.getDeclaredFields.map(f => retrieveField(f)).flatten.toList
+
+  // the id needs to be set by the ORM companion object, so this needs to be a public
+  // method. hence, it can clash with names from the superclass namespace. :(
+  // any ideas for improvements?
+  def __setid__(id: Long) = this.id = Some(id)
 
   @throws(classOf[IllegalStateException])
   def insert() = {
