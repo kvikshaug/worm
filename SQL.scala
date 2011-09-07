@@ -53,6 +53,14 @@ class SQL(val driver: String, val jdbcURL: String) {
     statement.getUpdateCount
   }
 
+  def delete(table: String, id: Long) = {
+    val query = String.format("delete from '%s' where id='%s';",
+      table,
+      id.toString)
+    val statement = connection.prepareStatement(query)
+    statement.execute
+    statement.getUpdateCount
+  }
 
   private def returnQuery(query: String) = {
     val rows = executeSelect(connection.prepareStatement(query))

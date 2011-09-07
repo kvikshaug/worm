@@ -85,6 +85,17 @@ class ORM {
     ORM.sql.get.update(c.getSimpleName, id.get, fields)
   }
 
+  @throws(classOf[IllegalStateException])
+  def delete() = {
+    if(ORM.sql isEmpty) {
+      throw new NotConnectedException("You need to connect to the database before using it.")
+    }
+    if(id isEmpty) {
+      throw new IllegalStateException("This object doesn't exist in the database!")
+    }
+    ORM.sql.get.delete(c.getSimpleName, id.get)
+  }
+
   /* This is based on conventions.
      For java classes, we assume that a field 'foo' will have a 'getFoo' method.
      For scala classes, we assume that each field will have a corresponding method with

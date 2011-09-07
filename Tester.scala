@@ -13,6 +13,7 @@ object Runner {
     println("Should be OMG: " + test2)
     val list = ORM.get[Tester]
     list foreach println
+    test1.delete
     ORM.disconnect
   }
 }
