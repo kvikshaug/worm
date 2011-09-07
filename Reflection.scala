@@ -10,6 +10,20 @@ object ORM {
 
   def disconnect { if(sql isDefined) { sql.get.disconnect; sql = None } }
 
+  def get[T <: ORM: ClassManifest](id: Long): Option[T] = {
+    if(sql isEmpty) {
+      throw new NotConnectedException("You need to connect to the database before using it.")
+    }
+    val row = sql.get.selectID(classManifest[T].erasure.getName, id)
+    if(row isEmpty) {
+      return None
+    }
+    val constructor = classManifest[T].erasure.getConstructors()(0)
+    val obj = constructor.newInstance(row.get.values: _*).asInstanceOf[T]
+    obj.__setid__(row.get.id)
+    Some(obj)
+  }
+
   def get[T <: ORM: ClassManifest]: List[T] = {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")

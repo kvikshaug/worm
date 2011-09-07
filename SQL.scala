@@ -14,12 +14,16 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   def selectAll(table: String) = {
     // todo - sanitize table String - SQL injection
-    executeSelect(connection.prepareStatement("select * from `" + table + "`"))
+    executeSelect(connection.prepareStatement("select * from '" + table + "'"))
   }
 
   def selectID(table: String, id: Long) = {
     // todo - sanitize table String - SQL injection
-    executeSelect(connection.prepareStatement("select * from `" + table + "` where id=`" + id + "`"))
+    val rows = executeSelect(connection.prepareStatement("select * from '" + table + "' where id='" + id + "'"))
+    if(rows.size == 1)
+      Some(rows(0))
+    else
+      None
   }
 
   private def executeSelect(statement: PreparedStatement) = {
