@@ -7,7 +7,7 @@ object ORM {
     // TODO connect everywhere, throw exception if fail? or something?
     SQL.connect("org.sqlite.JDBC", "jdbc:sqlite:test.db")
     // fields should be retrieved from db
-    val rows = SQL.select(classManifest[T].erasure.getName)
+    val rows = SQL.selectAll(classManifest[T].erasure.getName)
     val constructor = classManifest[T].erasure.getConstructors()(0)
     val objects = rows.map { row =>
       val obj = constructor.newInstance(row.values: _*).asInstanceOf[T]
