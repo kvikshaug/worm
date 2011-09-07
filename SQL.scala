@@ -12,21 +12,13 @@ class SQL(val driver: String, val jdbcURL: String) {
   // The time in seconds to wait for the database operation used to validate the connection to complete.
   private val timeout = 10
 
-  private def ensureConnected = {
-    if(!connection.isValid(timeout)) {
-      connection = DriverManager.getConnection(jdbcURL)
-    }
-  }
-
   def selectAll(table: String) = {
     // todo - sanitize table String - SQL injection
-    ensureConnected
     executeSelect(connection.prepareStatement("select * from `" + table + "`"))
   }
 
   def selectID(table: String, id: Long) = {
     // todo - sanitize table String - SQL injection
-    ensureConnected
     executeSelect(connection.prepareStatement("select * from `" + table + "` where id=`" + id + "`"))
   }
 
