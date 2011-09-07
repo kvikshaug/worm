@@ -21,7 +21,7 @@ object SQL {
     executeSelect(connection.get.prepareStatement("select * from `" + table + "` where id=`" + id + "`"))
   }
 
-  def executeSelect(statement: PreparedStatement) = {
+  private def executeSelect(statement: PreparedStatement) = {
     if(connection isEmpty) {
       throw new Exception("TODO some better exception")
     }
