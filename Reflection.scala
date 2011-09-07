@@ -63,10 +63,7 @@ class ORM {
         id.get + ".")
     }
     val fields = this.fields
-    println(String.format("insert into `%s` (%s) values (%s)",
-            c.getSimpleName,
-            commaize(fields.map(_.name)),
-            commaize(fields.map(_.value))))
+    ORM.sql.get.insert(c.getSimpleName, fields)
   }
 
   @throws(classOf[IllegalStateException])
@@ -101,11 +98,5 @@ class ORM {
       return Some(Field(field.getName, method.get.invoke(this).toString))
     }
     return None
-  }
-
-  def commaize(list: List[_ <: Any]): String = list match {
-    case List()  => ""
-    case List(x) => x.toString
-    case _       => list(0) + ", " + commaize(list.tail)
   }
 }

@@ -27,6 +27,15 @@ class SQL(val driver: String, val jdbcURL: String) {
     returnQuery("select * from '" + table + "' where " + whereClause + ";")
   }
 
+  def insert(table: String, fields: List[Field]) {
+    // todo - sanitize table String AND all fields - SQL injection
+    val query = String.format("insert into '%s' (%s) values (%s);",
+        table,
+        commaize(fields.map("'" + _.name + "'")),
+        commaize(fields.map("'" + _.value + "'")))
+    println(query)
+  }
+
   private def returnQuery(query: String) = {
     val rows = executeSelect(connection.prepareStatement(query))
     if(rows.size == 1)
@@ -45,5 +54,11 @@ class SQL(val driver: String, val jdbcURL: String) {
       rows = Row(resultset.getObject(1).asInstanceOf[Int].toLong, values.toList) :: rows
     }
     rows
+  }
+
+  private def commaize(list: List[_ <: Any]): String = list match {
+    case List()  => ""
+    case List(x) => x.toString
+    case _       => list(0) + ", " + commaize(list.tail)
   }
 }
