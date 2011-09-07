@@ -25,7 +25,6 @@ class SQL(val driver: String, val jdbcURL: String) {
   private def executeSelect(statement: PreparedStatement) = {
     statement.execute
     val resultset = statement.getResultSet()
-    println(resultset.getMetaData().getColumnCount())
     var rows = List[Row]()
     while(resultset.next()) {
       val values = for(i <- 2 to resultset.getMetaData().getColumnCount())
@@ -34,5 +33,4 @@ class SQL(val driver: String, val jdbcURL: String) {
     }
     rows
   }
-
 }
