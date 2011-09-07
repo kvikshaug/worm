@@ -7,7 +7,7 @@ object SQL {
   var connection: Option[Connection] = None
 
   def connect(driver: String, jdbcURL: String) = {
-    Class.forName("org.sqlite.JDBC")
+    Class.forName(driver)
     connection = Some(DriverManager.getConnection(jdbcURL))
   }
 
