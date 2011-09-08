@@ -1,2 +1,5 @@
 *.class
+target/
+project/boot/
+project/target/
 

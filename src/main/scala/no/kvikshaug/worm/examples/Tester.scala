@@ -1,5 +1,7 @@
 package no.kvikshaug.worm.examples
 
+import no.kvikshaug.worm.Worm
+
 case class Tester(var foo: String, hmm: Int) extends Worm
 
 object Runner {
