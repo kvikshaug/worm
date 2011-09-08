@@ -5,7 +5,7 @@ import scala.collection.JavaConverters._
 
 case class Field(name: String, value: Any)
 
-object ORM {
+object Worm {
   var sql: Option[SQL] = None
   def connect(driver: String, jdbcURL: String) {
     sql = Some(new SQL(driver, jdbcURL))
@@ -13,10 +13,10 @@ object ORM {
 
   def disconnect { if(sql isDefined) { sql.get.disconnect; sql = None } }
 
-  def getJavaWhere[T <: ORM](c: Class[_ <: ORM], whereClause: String): Option[T] =
+  def getJavaWhere[T <: Worm](c: Class[_ <: Worm], whereClause: String): Option[T] =
     getWhere[T](whereClause)(Manifest.classType(c))
 
-  def getWhere[T <: ORM: ClassManifest](whereClause: String): Option[T] = {
+  def getWhere[T <: Worm: ClassManifest](whereClause: String): Option[T] = {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
@@ -30,8 +30,8 @@ object ORM {
     Some(obj)
   }
 
-  def getJava[T <: ORM](c: Class[_ <: ORM]): java.util.List[T] = get[T](Manifest.classType(c)).asJava
-  def get[T <: ORM: ClassManifest]: List[T] = {
+  def getJava[T <: Worm](c: Class[_ <: Worm]): java.util.List[T] = get[T](Manifest.classType(c)).asJava
+  def get[T <: Worm: ClassManifest]: List[T] = {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
@@ -46,19 +46,19 @@ object ORM {
   }
 }
 
-class ORM {
+class Worm {
   private val c = this.getClass
   private var id: Option[Long] = None
   private def fields = c.getDeclaredFields.map(f => retrieveField(f)).flatten.toList
 
-  // the id needs to be set by the ORM companion object, so this needs to be a public
+  // the id needs to be set by the Worm companion object, so this needs to be a public
   // method. hence, it can clash with names from the superclass namespace. :(
   // any ideas for improvements?
   def __setid__(id: Long) = this.id = Some(id)
 
   @throws(classOf[IllegalStateException])
   def insert() = {
-    if(ORM.sql isEmpty) {
+    if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
     if(id.isDefined) {
@@ -66,7 +66,7 @@ class ORM {
         id.get + ".")
     }
     val fields = this.fields
-    val key = ORM.sql.get.insert(c.getSimpleName, fields)
+    val key = Worm.sql.get.insert(c.getSimpleName, fields)
     if(key isEmpty) {
       throw new SQLException("The SQL driver didn't throw any exception, but it also said that no keys were inserted!\n" +
       "Not really sure how that happened, or what I (the ORM) can do about it.")
@@ -78,24 +78,24 @@ class ORM {
 
   @throws(classOf[IllegalStateException])
   def update() = {
-    if(ORM.sql isEmpty) {
+    if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
     if(id.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    ORM.sql.get.update(c.getSimpleName, id.get, fields)
+    Worm.sql.get.update(c.getSimpleName, id.get, fields)
   }
 
   @throws(classOf[IllegalStateException])
   def delete() = {
-    if(ORM.sql isEmpty) {
+    if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
     if(id isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    ORM.sql.get.delete(c.getSimpleName, id.get)
+    Worm.sql.get.delete(c.getSimpleName, id.get)
   }
 
   /* This is based on conventions.

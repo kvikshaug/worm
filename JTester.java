@@ -1,4 +1,4 @@
-public class JTester extends ORM {
+public class JTester extends Worm {
 	private String far;
 	private int baz;
 
