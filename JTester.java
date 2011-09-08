@@ -7,7 +7,7 @@ public class JTester extends ORM {
 		this.baz = baz;
 	}
 
-	public String far() {
+	public String getFar() {
 		return far;
 	}
 

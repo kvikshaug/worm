@@ -1,6 +1,8 @@
 import java.lang.reflect.{Field => JVMField}
 import java.sql.SQLException
 
+import scala.collection.JavaConverters._
+
 case class Field(name: String, value: Any)
 
 object ORM {
@@ -11,9 +13,8 @@ object ORM {
 
   def disconnect { if(sql isDefined) { sql.get.disconnect; sql = None } }
 
-  def get[T <: ORM: ClassManifest](id: Long): Option[T] = {
-    getWhere[T]("id='" + id + "'")
-  }
+  def getJavaWhere[T <: ORM](c: Class[_ <: ORM], whereClause: String): Option[T] =
+    getWhere[T](whereClause)(Manifest.classType(c))
 
   def getWhere[T <: ORM: ClassManifest](whereClause: String): Option[T] = {
     if(sql isEmpty) {
@@ -29,6 +30,7 @@ object ORM {
     Some(obj)
   }
 
+  def getJava[T <: ORM](c: Class[_ <: ORM]): java.util.List[T] = get[T](Manifest.classType(c)).asJava
   def get[T <: ORM: ClassManifest]: List[T] = {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
