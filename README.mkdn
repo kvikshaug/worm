@@ -1,0 +1,137 @@
+# WORM - W. object-relational mapper
+
+*(I haven't yet decided what the w stands for.)*
+
+Worm is a simple, no-fuzz ORM for the JVM.
+
+Its database schema mimics the domain model. This affects performance negatively for large datasets, but allows us to create a very straight-forward ORM for small ones.
+
+## Usage (from Scala)
+
+### 1: Create the table manually:
+
+    CREATE TABLE ToStore (id INTEGER PRIMARY KEY, foo TEXT, bar NUMERIC);
+
+### 2: Import `no.kvikshaug.worm.Worm` and extend it:
+
+    import no.kvikshaug.worm.Worm
+    
+    case class ToStore(var foo: String, bar: Int) extends Worm
+
+### 3: Connect to the db, providing jdbc driver classname and jdbc URL:
+
+    Worm.connect("org.sqlite.JDBC", "jdbc:sqlite:test.db")
+
+### 4: Use the ORM
+
+You can call the following methods on any ToStore objects:
+
+- `insert` - Inserts the object into the DB
+- `update` - Updates all the fields and stores them in the DB
+- `delete` - Deletes this object from the DB
+
+You can also call the following methods on the Worm companion object:
+
+- `get[T]` - Retrieve all rows of a specific object
+- `getWhere[T](whereClause: String)` - Retrieve all rows matching the specified SQL where clause
+
+Examples:
+    
+    val obj1 = ToStore("hello", 42)
+    val obj2 = ToStore("world", 9)
+
+    obj1.insert
+    obj2.insert
+    obj1.foo = "goodbye"
+    obj1.update
+
+    val retrieved = Worm.getWhere[ToStore]("foo='world'")
+    if(retrieved.isDefined) {
+        retrieved.get.delete
+    }
+
+    val list = Worm.get[ToStore]
+    list foreach println
+    // Prints: ToStore("goodbye", 42)
+
+### 5: Disconnect
+
+    Worm.disconnect
+
+## Usage (from Java)
+
+The only difference is the `get*` methods, which are now:
+
+- `getJava(Class<? extends Worm>)` to get all rows
+- `getJavaWhere(Class<? extends Worm>, String whereClause)` to get rows matching a where clause
+
+Here's the complete Scala example from above, rewritten for Java:
+
+    // ToStore.java
+    import no.kvikshaug.worm.Worm;
+    
+    public class ToStore extends Worm {
+        private String foo;
+        private final int bar;
+    
+        public ToStore(String foo, final int bar) {
+            this.foo = foo;
+            this.bar = bar;
+        }
+    
+        public String getFoo() {
+            return foo;
+        }
+    
+        public void setFoo(String foo) {
+            this.foo = foo;
+        }
+    
+        public int getBar() {
+            return bar;
+        }
+    }
+    
+    // Tester.java
+    import no.kvikshaug.worm.Worm;
+    
+    import java.util.List;
+    import scala.Option;
+    
+    public class Tester {
+        public static void main(String[] args) {
+            Worm.connect("org.sqlite.JDBC", "jdbc:sqlite:test.db");
+            ToStore obj1 = new ToStore("hello", 42);
+            ToStore obj2 = new ToStore("world", 9);
+    
+            obj1.insert();
+            obj2.insert();
+            obj1.setFoo("goodbye");
+            obj1.update();
+    
+            Option<ToStore> retrieved = Worm.getJavaWhere(ToStore.class, "foo='world'");
+            if(retrieved.isDefined()) {
+                retrieved.get().delete();
+            }
+    
+            List<ToStore> list = Worm.getJava(ToStore.class);
+            for(ToStore ts: list) {
+                System.out.printf("ToStore(%s, %s)\n", ts.getFoo(), ts.getBar());
+            }
+            // Prints: ToStore("goodbye", 42)
+            Worm.disconnect();
+        }
+    }
+
+Note the use of Scalas `Option`. Read more about that [here](http://www.codecommit.com/blog/scala/the-option-pattern) if you're not familiar with it.
+
+## Building
+
+- It is written in [Scala](http://www.scala-lang.org/)
+- Its built with [SBT](https://github.com/harrah/xsbt)
+- It depends on [SQLite JDBC](http://www.xerial.org/trac/Xerial/wiki/SQLiteJDBC)
+
+## TODO/Thoughts
+
+- At the moment, you're required to create the database schema manually. Could/should this be automated in some way?
+- Relationships are not yet handled
