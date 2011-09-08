@@ -1,3 +1,5 @@
+package no.kvikshaug.worm
+
 import java.lang.reflect.{Field => JVMField}
 import java.sql.SQLException
 

@@ -1,3 +1,5 @@
+package no.kvikshaug.worm
+
 import java.sql._
 
 case class Row(id: Long, values: List[AnyRef])

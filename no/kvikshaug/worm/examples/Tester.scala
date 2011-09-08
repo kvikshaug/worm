@@ -1,3 +1,5 @@
+package no.kvikshaug.worm.examples
+
 case class Tester(var foo: String, hmm: Int) extends Worm
 
 object Runner {

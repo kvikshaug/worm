@@ -1,3 +1,7 @@
+package no.kvikshaug.worm.examples;
+
+import no.kvikshaug.worm.Worm;
+
 import java.util.List;
 import scala.Option;
 

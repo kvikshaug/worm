@@ -1,3 +1,7 @@
+package no.kvikshaug.worm.examples;
+
+import no.kvikshaug.worm.Worm;
+
 public class JTester extends Worm {
 	private String far;
 	private int baz;
