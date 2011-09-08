@@ -22,7 +22,7 @@ object Worm {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val row = sql.get.selectWhere(classManifest[T].erasure.getName, whereClause)
+    val row = sql.get.selectWhere(classManifest[T].erasure.getSimpleName, whereClause)
     if(row isEmpty) {
       return None
     }
@@ -37,7 +37,7 @@ object Worm {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val rows = sql.get.selectAll(classManifest[T].erasure.getName)
+    val rows = sql.get.selectAll(classManifest[T].erasure.getSimpleName)
     val constructor = classManifest[T].erasure.getConstructors()(0)
     val objects = rows.map { row =>
       val obj = constructor.newInstance(row.values: _*).asInstanceOf[T]
