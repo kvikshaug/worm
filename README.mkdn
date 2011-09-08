@@ -125,6 +125,16 @@ Here's the complete Scala example from above, rewritten for Java:
 
 Note the use of Scalas `Option`. Read more about that [here](http://www.codecommit.com/blog/scala/the-option-pattern) if you're not familiar with it.
 
+## Constraints
+
+The domain model classes must conform to the following standard:
+
+- The class must only have one constructor.
+- All fields to be saved must have a corresponding getter, or alternatively a method with the same name. E.g. field `foo` must have a `getFoo()` *or* a `foo()` method which retrieves the field.
+- All fields to be saved must have a corresponding parameter in the class constructor.
+- The fields must be declared *in the same order* that the constructor parameters are declared.
+- The class cannot have a method named `\_\_setid\_\_`, because the Worm class defines such a method. I would prefer to avoid using such a method if possible - suggestions are much appreciated.
+
 ## Building
 
 - It is written in [Scala](http://www.scala-lang.org/)
