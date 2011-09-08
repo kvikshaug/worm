@@ -138,7 +138,7 @@ The domain model classes must conform to the following standard:
 ## Building
 
 - It is written in [Scala](http://www.scala-lang.org/)
-- Its built with [SBT](https://github.com/harrah/xsbt)
+- It's built with [SBT](https://github.com/harrah/xsbt)
 - It depends on [SQLite JDBC](http://www.xerial.org/trac/Xerial/wiki/SQLiteJDBC)
 
 ## TODO/Thoughts
