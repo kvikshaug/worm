@@ -58,7 +58,6 @@ class Worm {
   // any ideas for improvements?
   def __setid__(id: Long) = this.id = Some(id)
 
-  @throws(classOf[IllegalStateException])
   def insert() = {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
@@ -78,7 +77,6 @@ class Worm {
     }
   }
 
-  @throws(classOf[IllegalStateException])
   def update() = {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
