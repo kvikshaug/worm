@@ -51,7 +51,10 @@ object Worm {
 class Worm {
   private val c = this.getClass
   private var id: Option[Long] = None
-  private def fields = c.getDeclaredFields.map(f => retrieveField(f)).flatten.toList
+  private def fields = c.getDeclaredFields.map { f =>
+      f.setAccessible(true)
+      Field(f.getName, f.get(this))
+  }.toList
 
   // the id needs to be set by the Worm companion object, so this needs to be a public
   // method. hence, it can clash with names from the superclass namespace. :(
@@ -66,7 +69,6 @@ class Worm {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         id.get + ".")
     }
-    val fields = this.fields
     val key = Worm.sql.get.insert(c.getSimpleName, fields)
     if(key isEmpty) {
       throw new SQLException("The SQL driver didn't throw any exception, but it also said that no keys were inserted!\n" +
@@ -96,25 +98,5 @@ class Worm {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
     Worm.sql.get.delete(c.getSimpleName, id.get)
-  }
-
-  /* This is based on conventions.
-     For java classes, we assume that a field 'foo' will have a 'getFoo' method.
-     For scala classes, we assume that each field will have a corresponding method with
-     the same name. We don't know which is which, we just test for both. */
-  private def retrieveField(field: JVMField): Option[Field] = {
-    def asGetter(s: String) = "get" + s(0).toUpper + s.tail
-    // check for getter
-    val getter = c.getMethods.find(_.getName == asGetter(field.getName))
-    if(getter isDefined) {
-      return Some(Field(field.getName, getter.get.invoke(this)))
-    }
-
-    // check for method with same name
-    val method = c.getMethods.find(_.getName == field.getName)
-    if(method isDefined) {
-      return Some(Field(field.getName, method.get.invoke(this)))
-    }
-    return None
   }
 }
