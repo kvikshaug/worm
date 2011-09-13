@@ -88,21 +88,21 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   // Cast and if necessary conevrt objects to their applicable types
   private def cast(t: Class[_], obj: Any) = {
-    if(t == classOf[Double]) {
+    if(t == classOf[Double] || t == classOf[java.lang.Double]) {
       obj.asInstanceOf[java.lang.Double]
-    } else if(t == classOf[Float]) {
+    } else if(t == classOf[Float] || t == classOf[java.lang.Float]) {
       obj.asInstanceOf[java.lang.Double].floatValue
-    } else if(t == classOf[Long]) {
+    } else if(t == classOf[Long] || t == classOf[java.lang.Long]) {
       obj.asInstanceOf[java.lang.Integer].longValue
-    } else if(t == classOf[Int]) {
+    } else if(t == classOf[Int] || t == classOf[java.lang.Integer]) {
       obj.asInstanceOf[java.lang.Integer]
-    } else if(t == classOf[Short]) {
+    } else if(t == classOf[Short] || t == classOf[java.lang.Short]) {
       obj.asInstanceOf[java.lang.Integer].shortValue
-    } else if(t == classOf[Byte]) {
+    } else if(t == classOf[Byte] || t == classOf[java.lang.Byte]) {
       obj.asInstanceOf[java.lang.Integer].byteValue
-    } else if(t == classOf[Boolean]) {
+    } else if(t == classOf[Boolean] || t == classOf[java.lang.Boolean]) {
       java.lang.Boolean.parseBoolean(obj.asInstanceOf[java.lang.String])
-    } else if(t == classOf[Char]) {
+    } else if(t == classOf[Char] || t == classOf[java.lang.Character]) {
       obj.asInstanceOf[java.lang.String].charAt(0)
     } else if(t == classOf[String]) {
       obj.asInstanceOf[java.lang.String]
