@@ -57,7 +57,7 @@ class Worm {
   }.toList
 
   // the id needs to be set by the Worm companion object, so this needs to be a public
-  // method. hence, it can clash with names from the superclass namespace. :(
+  // method. hence, it can clash with names from the subclass namespace. :(
   // any ideas for improvements?
   def __setid__(id: Long) = this.id = Some(id)
 
