@@ -107,13 +107,13 @@ class Worm {
     // check for getter
     val getter = c.getMethods.find(_.getName == asGetter(field.getName))
     if(getter isDefined) {
-      return Some(Field(field.getName, getter.get.invoke(this).toString))
+      return Some(Field(field.getName, getter.get.invoke(this)))
     }
 
     // check for method with same name
     val method = c.getMethods.find(_.getName == field.getName)
     if(method isDefined) {
-      return Some(Field(field.getName, method.get.invoke(this).toString))
+      return Some(Field(field.getName, method.get.invoke(this)))
     }
     return None
   }
