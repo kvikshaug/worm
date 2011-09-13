@@ -12,7 +12,7 @@ Say you want to store a class called "Maggot" with a string and an integer. Firs
 
     CREATE TABLE Maggot (id INTEGER PRIMARY KEY, foo TEXT, bar NUMERIC);
 
-Note that the first column must be a primary key called `id`.
+Note that the first column must be a primary key called `id`. Check the "Constraints" section of this document to see what column types should be used for which data types.
 
 Then create your class, and have it extend `Worm`:
 
@@ -135,6 +135,12 @@ The domain model classes must conform to the following standard:
 - The fields must be declared *in the same order* that the constructor parameters are declared.
 - The class cannot have a method named `__setid__`, because the Worm class defines such a method. I would prefer to avoid using such a method if possible - suggestions are much appreciated.
 
+Use the following column types when creating the database tables:
+
+- `INTEGER PRIMARY KEY` for the `id` row
+- `NUMERIC` for: `Byte`, `Short`, `Int`, `Long`, `Float` and `Double`
+- `TEXT` for: `Boolean` and `String`
+
 ## Building
 
 - It is written in [Scala](http://www.scala-lang.org/)
@@ -145,3 +151,5 @@ The domain model classes must conform to the following standard:
 
 - At the moment, you're required to create the database schema manually. Could/should this be automated in some way?
 - Relationships are not yet handled
+- It can't store lists or arrays.
+- I have only tested the application against SQLite. I expect issues with other databases related to column types.

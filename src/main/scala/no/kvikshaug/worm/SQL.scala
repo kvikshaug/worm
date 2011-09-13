@@ -1,6 +1,7 @@
 package no.kvikshaug.worm
 
 import java.sql._
+import java.lang.reflect.Constructor
 
 case class Row(id: Long, values: List[AnyRef])
 
@@ -14,19 +15,19 @@ class SQL(val driver: String, val jdbcURL: String) {
   // The time in seconds to wait for the database operation used to validate the connection to complete.
   private val timeout = 10
 
-  def selectAll(table: String) = {
+  def selectAll[T](table: String, constructor: Constructor[T]) = {
     // todo - sanitize table String - SQL injection
-    executeSelect(connection.prepareStatement(String.format("select * from '%s';", table)))
+    executeSelect(connection.prepareStatement(String.format("select * from '%s';", table)), constructor)
   }
 
-  def selectID(table: String, id: Long) = {
+  def selectID[T](table: String, id: Long, constructor: Constructor[T]) = {
     // todo - sanitize table String - SQL injection (also, it's not used)
-    returnQuery(String.format("select * from '%s' where id='%s';", table, id.toString))
+    returnQuery(String.format("select * from '%s' where id='%s';", table, id.toString), constructor)
   }
 
-  def selectWhere(table: String, whereClause: String) = {
+  def selectWhere[T](table: String, whereClause: String, constructor: Constructor[T]) = {
     // todo - sanitize table String AND whereClause String - SQL injection
-    returnQuery(String.format("select * from '%s' where %s;", table, whereClause))
+    returnQuery(String.format("select * from '%s' where %s;", table, whereClause), constructor)
   }
 
   def insert(table: String, fields: List[Field]) = {
@@ -64,24 +65,48 @@ class SQL(val driver: String, val jdbcURL: String) {
     statement.getUpdateCount
   }
 
-  private def returnQuery(query: String) = {
-    val rows = executeSelect(connection.prepareStatement(query))
+  private def returnQuery[T](query: String, constructor: Constructor[T]) = {
+    val rows = executeSelect(connection.prepareStatement(query), constructor)
     if(rows.size == 1)
       Some(rows(0))
     else
       None
   }
 
-  private def executeSelect(statement: PreparedStatement) = {
+  private def executeSelect[T](statement: PreparedStatement, constructor: Constructor[T]) = {
     statement.execute
     val resultset = statement.getResultSet()
     var rows = List[Row]()
     while(resultset.next()) {
+      val types = constructor.getParameterTypes
       val values = for(i <- 2 to resultset.getMetaData().getColumnCount())
-        yield resultset.getObject(i).asInstanceOf[AnyRef]
-      rows = Row(resultset.getObject(1).asInstanceOf[Int].toLong, values.toList) :: rows
+        yield cast(types(i-2), resultset.getObject(i))
+      rows = Row(resultset.getObject(1).asInstanceOf[Int].toLong, values.toList.asInstanceOf[List[AnyRef]]) :: rows
     }
     rows
+  }
+
+  // Cast and if necessary conevrt objects to their applicable types
+  private def cast(t: Class[_], obj: Any) = {
+    if(t == classOf[Double]) {
+      obj.asInstanceOf[java.lang.Double]
+    } else if(t == classOf[Float]) {
+      obj.asInstanceOf[java.lang.Double].floatValue
+    } else if(t == classOf[Long]) {
+      obj.asInstanceOf[java.lang.Integer].longValue
+    } else if(t == classOf[Int]) {
+      obj.asInstanceOf[java.lang.Integer]
+    } else if(t == classOf[Short]) {
+      obj.asInstanceOf[java.lang.Integer].shortValue
+    } else if(t == classOf[Byte]) {
+      obj.asInstanceOf[java.lang.Integer].byteValue
+    } else if(t == classOf[Boolean]) {
+      java.lang.Boolean.parseBoolean(obj.asInstanceOf[java.lang.String])
+    } else if(t == classOf[Char]) {
+      obj.asInstanceOf[java.lang.String].charAt(0)
+    } else if(t == classOf[String]) {
+      obj.asInstanceOf[java.lang.String]
+    }
   }
 
   private def commaize(list: List[_ <: Any]): String = list match {
