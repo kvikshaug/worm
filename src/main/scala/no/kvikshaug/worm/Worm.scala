@@ -75,7 +75,7 @@ class Worm {
       "Not really sure how that happened, or what I (the ORM) can do about it.")
     } else {
       id = Some(key.get)
-      id
+      id.get
     }
   }
 
