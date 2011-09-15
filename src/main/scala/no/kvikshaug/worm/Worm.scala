@@ -89,7 +89,6 @@ class Worm {
     Worm.sql.get.update(c.getSimpleName, id.get, fields)
   }
 
-  @throws(classOf[IllegalStateException])
   def delete() = {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
