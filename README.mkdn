@@ -8,7 +8,7 @@ Its database schema mimics the domain model. This affects performance negatively
 
 ## Usage (from Scala)
 
-Say you want to store a class called "Maggot" with a string and an integer. First create the table in the database:
+Say you want to store a class called "Maggot" with a string and an integer. First create the table in the database, with the same column names as the variables - let's say `foo` and `bar`:
 
     CREATE TABLE Maggot (id INTEGER PRIMARY KEY, foo TEXT, bar NUMERIC);
 
