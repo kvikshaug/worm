@@ -34,12 +34,12 @@ Now you can do all sorts of crazy things:
     obj1.foo = "goodbye"
     obj1.update
 
-    val retrieved = Worm.getWhere[Maggot]("foo='world'")
+    val retrieved: Option[Maggot] = Worm.getWhere[Maggot]("foo='world'")
     if(retrieved.isDefined) {
         retrieved.get.delete
     }
 
-    val list = Worm.get[Maggot]
+    val list: List[Maggot] = Worm.get[Maggot]
     list foreach println
     // Prints: Maggot("goodbye", 42)
 
