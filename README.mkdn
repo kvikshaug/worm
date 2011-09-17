@@ -1,4 +1,4 @@
-# WORM - W. object-relational mapper
+# Worm - W. object-relational mapper
 
 *(I haven't yet decided what the w stands for.)*
 
@@ -12,7 +12,7 @@ You just make your class extend one in our library called `Worm`, create the tab
 
 You can also call `get` on the Worm companion object to retreive lists or specific objects (rows) that are already stored.
 
-Please refer to the [wiki](https://github.com/murr4y/worm/wiki) for more information. WORM is very simple to use once you get started.
+Please refer to the [wiki](https://github.com/murr4y/worm/wiki) for more information. Worm is very simple to use once you get started.
 
 ## Building
 
