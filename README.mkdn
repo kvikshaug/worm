@@ -6,19 +6,17 @@ Worm is a simple, no-fuzz ORM for the JVM.
 
 Its database schema mimics the domain model. This affects performance negatively for large datasets, but allows us to create a very straight-forward ORM for small ones.
 
+It is written in [Scala](http://www.scala-lang.org/), built with [SBT](https://github.com/harrah/xsbt) and has no dependencies.
+
 ## Usage
 
 You just make your class extend one in our library called `Worm`, create the tables in your db, and then you can call methods like `insert`, `update` and `delete` on that object.
 
 You can also call `get` on the Worm companion object to retreive lists or specific objects (rows) that are already stored.
 
-Please refer to the [wiki](https://github.com/murr4y/worm/wiki) for more information. Worm is very simple to use once you get started.
+## Documentation
 
-## Building
-
-- It is written in [Scala](http://www.scala-lang.org/)
-- It's built with [SBT](https://github.com/harrah/xsbt)
-- It has no dependencies
+Worm is documented at the [github wiki](https://github.com/murr4y/worm/wiki).
 
 ## TODO/Thoughts
 
