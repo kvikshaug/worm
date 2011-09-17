@@ -28,7 +28,7 @@ object Worm {
       return None
     }
     val obj = constructor.newInstance(row.get.values: _*).asInstanceOf[T]
-    obj.__setid__(row.get.id)
+    obj.wormDbId = Some(row.get.id)
     Some(obj)
   }
 
@@ -41,7 +41,7 @@ object Worm {
     val rows = sql.get.selectAll(classManifest[T].erasure.getSimpleName, constructor)
     val objects = rows.map { row =>
       val obj = constructor.newInstance(row.values: _*).asInstanceOf[T]
-      obj.__setid__(row.id)
+      obj.wormDbId = Some(row.id)
       obj
     }
     return objects
@@ -50,32 +50,31 @@ object Worm {
 
 class Worm {
   private val c = this.getClass
-  private var id: Option[Long] = None
   private def fields = c.getDeclaredFields.map { f =>
       f.setAccessible(true)
       Field(f.getName, f.get(this))
   }.toList
 
-  // the id needs to be set by the Worm companion object, so this needs to be a public
-  // method. hence, it can clash with names from the subclass namespace. :(
+  // the id needs to be set by some other classes, so this needs to be publicly
+  // accessible. hence, it can clash with names from the subclass namespace. :(
   // any ideas for improvements?
-  def __setid__(id: Long) = this.id = Some(id)
+  var wormDbId: Option[Long] = None
 
   def insert() = {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    if(id.isDefined) {
+    if(wormDbId.isDefined) {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
-        id.get + ".")
+        wormDbId.get + ".")
     }
     val key = Worm.sql.get.insert(c.getSimpleName, fields)
     if(key isEmpty) {
       throw new SQLException("The SQL driver didn't throw any exception, but it also said that no keys were inserted!\n" +
       "Not really sure how that happened, or what I (the ORM) can do about it.")
     } else {
-      id = Some(key.get)
-      id.get
+      wormDbId = Some(key.get)
+      wormDbId.get
     }
   }
 
@@ -83,19 +82,19 @@ class Worm {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    if(id.isEmpty) {
+    if(wormDbId.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    Worm.sql.get.update(c.getSimpleName, id.get, fields)
+    Worm.sql.get.update(c.getSimpleName, wormDbId.get, fields)
   }
 
   def delete() = {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    if(id isEmpty) {
+    if(wormDbId isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    Worm.sql.get.delete(c.getSimpleName, id.get)
+    Worm.sql.get.delete(c.getSimpleName, wormDbId.get)
   }
 }
