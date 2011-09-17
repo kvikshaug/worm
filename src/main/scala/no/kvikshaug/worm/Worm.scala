@@ -50,17 +50,13 @@ object Worm {
 
 class Worm {
   private val c = this.getClass
-  private def fields = c.getDeclaredFields.map { f =>
-      f.setAccessible(true)
-      Field(f.getName, f.get(this))
-  }.toList
 
   // the id needs to be set by some other classes, so this needs to be publicly
   // accessible. hence, it can clash with names from the subclass namespace. :(
   // any ideas for improvements?
   var wormDbId: Option[Long] = None
 
-  def insert() = {
+  def insert(): Long = {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
@@ -68,6 +64,14 @@ class Worm {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         wormDbId.get + ".")
     }
+    val fields = c.getDeclaredFields.map { f =>
+      f.setAccessible(true)
+      if(classOf[Worm].isAssignableFrom(f.getType)) {
+        Field(f.getName, f.get(this).asInstanceOf[Worm].insert)
+      } else {
+        Field(f.getName, f.get(this))
+      }
+    }.toList
     val key = Worm.sql.get.insert(c.getSimpleName, fields)
     if(key isEmpty) {
       throw new SQLException("The SQL driver didn't throw any exception, but it also said that no keys were inserted!\n" +
@@ -78,22 +82,49 @@ class Worm {
     }
   }
 
-  def update() = {
+  def update(): Unit = {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
     if(wormDbId.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
+    val fields = c.getDeclaredFields.map { f =>
+      f.setAccessible(true)
+      if(classOf[Worm].isAssignableFrom(f.getType)) {
+        // Relation
+        val instance = f.get(this).asInstanceOf[Worm]
+        if(instance.wormDbId.isDefined) {
+          // The related object is already inserted, so update it
+          instance.update
+          Some(Field(f.getName, instance.wormDbId.get))
+        } else {
+          // The related object isn't defined, it was changed after insertion, so re-insert it
+          Some(Field(f.getName, instance.insert))
+        }
+      } else {
+        Some(Field(f.getName, f.get(this)))
+      }
+    }.flatten.toList
     Worm.sql.get.update(c.getSimpleName, wormDbId.get, fields)
   }
 
-  def delete() = {
+  def delete(): Unit = {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
     if(wormDbId isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
+    }
+    val fields = c.getDeclaredFields.foreach { f =>
+      f.setAccessible(true)
+      if(classOf[Worm].isAssignableFrom(f.getType)) {
+        // Relation
+        val instance = f.get(this).asInstanceOf[Worm]
+        if(instance.wormDbId.isDefined) {
+          f.get(this).asInstanceOf[Worm].delete
+        }
+      }
     }
     Worm.sql.get.delete(c.getSimpleName, wormDbId.get)
   }

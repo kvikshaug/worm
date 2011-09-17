@@ -10,7 +10,7 @@ It is written in [Scala](http://www.scala-lang.org/), built with [SBT](https://g
 
 ## Usage
 
-You just make your class extend one in our library called `Worm`, create the tables in your db, and then you can call methods like `insert`, `update` and `delete` on that object.
+You just make your classes extend one in our library called `Worm`, create the tables in your db, and then you can call methods like `insert`, `update` and `delete` on your object.
 
 You can also call `get` on the Worm companion object to retreive lists or specific objects (rows) that are already stored.
 
@@ -21,6 +21,5 @@ Worm is documented at the [github wiki](https://github.com/murr4y/worm/wiki).
 ## TODO/Thoughts
 
 - At the moment, you're required to create the database schema manually. Could/should this be automated in some way?
-- Relationships are not yet handled
 - It can't store lists or arrays.
 - I have only tested the application against SQLite. I expect issues with other databases related to column types.

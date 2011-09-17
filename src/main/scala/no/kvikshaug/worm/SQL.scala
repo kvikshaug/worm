@@ -73,7 +73,7 @@ class SQL(val driver: String, val jdbcURL: String) {
       None
   }
 
-  private def executeSelect[T](statement: PreparedStatement, constructor: Constructor[T]) = {
+  private def executeSelect[T](statement: PreparedStatement, constructor: Constructor[T]): List[Row] = {
     statement.execute
     val resultset = statement.getResultSet()
     var rows = List[Row]()
@@ -106,6 +106,13 @@ class SQL(val driver: String, val jdbcURL: String) {
       obj.asInstanceOf[java.lang.String].charAt(0)
     } else if(t == classOf[String]) {
       obj.asInstanceOf[java.lang.String]
+    } else if(classOf[Worm].isAssignableFrom(t)) {
+      // Relation
+      val constructor = t.getConstructors()(0)
+      val row = selectWhere(t.getSimpleName, "id='" + obj.toString + "'", constructor)
+      val inner = constructor.newInstance(row.get.values: _*).asInstanceOf[Worm]
+      inner.wormDbId = Some(row.get.id)
+      inner
     }
   }
 
