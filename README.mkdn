@@ -10,7 +10,7 @@ It is written in [Scala](http://www.scala-lang.org/), built with [SBT](https://g
 
 ## Usage
 
-You just make your classes extend one in our library called `Worm`, create the tables in your db, and then you can call methods like `insert`, `update` and `delete` on your object.
+You just make your classes extend one in our library called `Worm`, create the tables in your db, and then you can call methods like `insert`, `update` and `delete` on your objects.
 
 You can also call `get` on the Worm companion object to retreive lists or specific objects (rows) that are already stored.
 
