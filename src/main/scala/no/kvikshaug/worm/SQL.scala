@@ -96,7 +96,7 @@ class SQL(val driver: String, val jdbcURL: String) {
       inner.wormDbId = Some(row.get.id)
       inner
     } else {
-      t.getSimpleName.replaceAll("Integer", "Int").replaceAll("Character", "Char").toLowerCase match {
+      t.getSimpleName.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase match {
         case "double"  => obj.asInstanceOf[java.lang.Double]
         case "float"   => obj.asInstanceOf[java.lang.Double].floatValue
         case "long"    => obj.asInstanceOf[java.lang.Integer].longValue
