@@ -88,31 +88,25 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   // Cast and if necessary conevrt objects to their applicable types
   private def cast(t: Class[_], obj: Any) = {
-    if(t == classOf[Double] || t == classOf[java.lang.Double]) {
-      obj.asInstanceOf[java.lang.Double]
-    } else if(t == classOf[Float] || t == classOf[java.lang.Float]) {
-      obj.asInstanceOf[java.lang.Double].floatValue
-    } else if(t == classOf[Long] || t == classOf[java.lang.Long]) {
-      obj.asInstanceOf[java.lang.Integer].longValue
-    } else if(t == classOf[Int] || t == classOf[java.lang.Integer]) {
-      obj.asInstanceOf[java.lang.Integer]
-    } else if(t == classOf[Short] || t == classOf[java.lang.Short]) {
-      obj.asInstanceOf[java.lang.Integer].shortValue
-    } else if(t == classOf[Byte] || t == classOf[java.lang.Byte]) {
-      obj.asInstanceOf[java.lang.Integer].byteValue
-    } else if(t == classOf[Boolean] || t == classOf[java.lang.Boolean]) {
-      java.lang.Boolean.parseBoolean(obj.asInstanceOf[java.lang.String])
-    } else if(t == classOf[Char] || t == classOf[java.lang.Character]) {
-      obj.asInstanceOf[java.lang.String].charAt(0)
-    } else if(t == classOf[String]) {
-      obj.asInstanceOf[java.lang.String]
-    } else if(classOf[Worm].isAssignableFrom(t)) {
+    if(classOf[Worm].isAssignableFrom(t)) {
       // Relation
       val constructor = t.getConstructors()(0)
       val row = selectWhere(t.getSimpleName, "id='" + obj.toString + "'", constructor)
       val inner = constructor.newInstance(row.get.values: _*).asInstanceOf[Worm]
       inner.wormDbId = Some(row.get.id)
       inner
+    } else {
+      t.getSimpleName.replaceAll("Integer", "Int").replaceAll("Character", "Char").toLowerCase match {
+        case "double"  => obj.asInstanceOf[java.lang.Double]
+        case "float"   => obj.asInstanceOf[java.lang.Double].floatValue
+        case "long"    => obj.asInstanceOf[java.lang.Integer].longValue
+        case "int"     => obj.asInstanceOf[java.lang.Integer]
+        case "short"   => obj.asInstanceOf[java.lang.Integer].shortValue
+        case "byte"    => obj.asInstanceOf[java.lang.Integer].byteValue
+        case "boolean" => java.lang.Boolean.parseBoolean(obj.asInstanceOf[java.lang.String])
+        case "char"    => obj.asInstanceOf[java.lang.String].charAt(0)
+        case "string"  => obj.asInstanceOf[java.lang.String]
+      }
     }
   }
 
