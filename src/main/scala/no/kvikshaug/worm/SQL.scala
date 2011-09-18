@@ -43,14 +43,9 @@ class SQL(val db: String, val driver: String, val jdbcURL: String) {
     executeSelect(connection.prepareStatement(String.format("select * from '%s';", table)), constructor)
   }
 
-  def selectID[T](table: String, id: Long, constructor: Constructor[T]) = {
-    // todo - sanitize table String - SQL injection (also, it's not used)
-    returnQuery(String.format("select * from '%s' where id='%s';", table, id.toString), constructor)
-  }
-
-  def selectWhere[T](table: String, whereClause: String, constructor: Constructor[T]) = {
+  def selectWith[T](table: String, sql: String, constructor: Constructor[T]) = {
     // todo - sanitize table String AND whereClause String - SQL injection
-    returnQuery(String.format("select * from '%s' where %s;", table, whereClause), constructor)
+    returnQuery(String.format("select * from '%s' %s;", table, sql), constructor)
   }
 
   def insert(table: String, fields: List[Field]) = {
@@ -132,7 +127,7 @@ class SQL(val db: String, val driver: String, val jdbcURL: String) {
     if(classOf[Worm].isAssignableFrom(t)) {
       // Relation
       val constructor = t.getConstructors()(0)
-      val row = selectWhere(t.getSimpleName, "id='" + obj.toString + "'", constructor)
+      val row = selectWith(t.getSimpleName, "where id='" + obj.toString + "'", constructor)
       val inner = constructor.newInstance(row.get.values: _*).asInstanceOf[Worm]
       inner.wormDbId = Some(row.get.id)
       inner
