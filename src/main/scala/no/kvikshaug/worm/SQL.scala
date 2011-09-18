@@ -12,9 +12,6 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   def disconnect = connection.close
 
-  // The time in seconds to wait for the database operation used to validate the connection to complete.
-  private val timeout = 10
-
   def selectAll[T](table: String, constructor: Constructor[T]) = {
     // todo - sanitize table String - SQL injection
     executeSelect(connection.prepareStatement(String.format("select * from '%s';", table)), constructor)
