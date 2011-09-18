@@ -44,10 +44,17 @@ class SQL(val driver: String, val jdbcURL: String) {
   }
 
   def update(table: String, id: Long, fields: List[Field]) = {
-    val query = String.format("update '%s' set %s where id='%s';",
-      table,
-      dualize(fields),
-      id.toString)
+    val sb = new StringBuilder
+    for(i <- 0 until fields.size) {
+      if(i == fields.size - 1) {
+        sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("'")
+      } else {
+        sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("',")
+      }
+    }
+    val pairs = sb.toString
+
+    val query = String.format("update '%s' set %s where id='%s';", table, pairs, id.toString)
     val statement = connection.prepareStatement(query)
     statement.execute
     statement.getUpdateCount
@@ -113,17 +120,5 @@ class SQL(val driver: String, val jdbcURL: String) {
     case List()  => ""
     case List(x) => x.toString
     case _       => list(0) + ", " + commaize(list.tail)
-  }
-
-  private def dualize(fields: List[Field]): String = {
-    val sb = new StringBuilder
-    for(i <- 0 until fields.size) {
-      if(i == fields.size - 1) {
-        sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("'")
-      } else {
-        sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("',")
-      }
-    }
-    sb.toString
   }
 }
