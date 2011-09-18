@@ -21,5 +21,4 @@ Worm is documented at the [github wiki](https://github.com/murr4y/worm/wiki).
 ## TODO/Thoughts
 
 - It can't store lists or arrays.
-- I have only tested the application against SQLite. I expect issues with other databases related to column types.
 - You can't have two domain classes referring to each other, that would cause an infinite loop.

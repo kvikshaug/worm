@@ -5,8 +5,12 @@ import java.lang.reflect.Constructor
 
 case class Row(id: Long, values: List[AnyRef])
 
-class SQL(val driver: String, val jdbcURL: String) {
+class SQL(val db: String, val driver: String, val jdbcURL: String) {
 
+  db.toLowerCase match {
+    case "sqlite" =>
+    case _        => throw new UnsupportedDatabaseException("Worm doesn't support the '"+db+"' DB engine yet.")
+  }
   Class.forName(driver)
   private var connection = DriverManager.getConnection(jdbcURL)
 
@@ -15,9 +19,9 @@ class SQL(val driver: String, val jdbcURL: String) {
   def create(table: String, columns: List[Column]) {
     // Format the columns into a string
     val sb = new StringBuilder
-    sb.append("id INTEGER PRIMARY KEY, ")
+    sb.append("id " + pkType + ", ")
     for(i <- 0 until columns.size) {
-      sb.append(columns(i).name).append(" ").append(dbTypeOf(columns(i).fieldType))
+      sb.append(columns(i).name).append(" ").append(columnType(columns(i).fieldType))
       if(i != columns.size - 1) {
         sb.append(", ")
       }
@@ -32,20 +36,6 @@ class SQL(val driver: String, val jdbcURL: String) {
     val query = String.format("CREATE TABLE IF NOT EXISTS %s (%s);", table, sb.toString)
     val statement = connection.prepareStatement(query)
     statement.execute
-  }
-
-  private def dbTypeOf(fieldType: String) = fieldType match {
-    case "double"  => "NUMERIC"
-    case "float"   => "NUMERIC"
-    case "long"    => "NUMERIC"
-    case "int"     => "NUMERIC"
-    case "short"   => "NUMERIC"
-    case "byte"    => "NUMERIC"
-    case "boolean" => "TEXT"
-    case "char"    => "TEXT"
-    case "string"  => "TEXT"
-    case _         => throw new UnsupportedTypeException("Can't create DB column with unknown type '" +
-      fieldType + "'")
   }
 
   def selectAll[T](table: String, constructor: Constructor[T]) = {
@@ -119,14 +109,26 @@ class SQL(val driver: String, val jdbcURL: String) {
     while(resultset.next()) {
       val types = constructor.getParameterTypes
       val values = for(i <- 2 to resultset.getMetaData().getColumnCount())
-        yield cast(types(i-2), resultset.getObject(i))
+        yield jvmType(types(i-2), resultset.getObject(i))
       rows = Row(resultset.getObject(1).asInstanceOf[Int].toLong, values.toList.asInstanceOf[List[AnyRef]]) :: rows
     }
     rows
   }
 
+  private def commaize(list: List[_ <: Any]): String = list match {
+    case List()  => ""
+    case List(x) => x.toString
+    case _       => list(0) + ", " + commaize(list.tail)
+  }
+
+  /* DB-engine specific functions */
+
   // Cast and if necessary conevrt objects to their applicable types
-  private def cast(t: Class[_], obj: Any) = {
+  private def jvmType(t: Class[_], obj: Any) = db.toLowerCase match {
+    case "sqlite" => jvmTypeSQLite(t, obj)
+  }
+
+  private def jvmTypeSQLite(t: Class[_], obj: Any) = {
     if(classOf[Worm].isAssignableFrom(t)) {
       // Relation
       val constructor = t.getConstructors()(0)
@@ -151,9 +153,27 @@ class SQL(val driver: String, val jdbcURL: String) {
     }
   }
 
-  private def commaize(list: List[_ <: Any]): String = list match {
-    case List()  => ""
-    case List(x) => x.toString
-    case _       => list(0) + ", " + commaize(list.tail)
+  // Primary key type
+  private def pkType = db.toLowerCase match {
+    case "sqlite" => "INTEGER PRIMARY KEY"
+  }
+
+  // Column types
+  private def columnType(fieldType: String) = db.toLowerCase match {
+    case "sqlite" => columnTypeSQLite(fieldType)
+  }
+
+  private def columnTypeSQLite(fieldType: String) = fieldType match {
+    case "double"  => "NUMERIC"
+    case "float"   => "NUMERIC"
+    case "long"    => "NUMERIC"
+    case "int"     => "NUMERIC"
+    case "short"   => "NUMERIC"
+    case "byte"    => "NUMERIC"
+    case "boolean" => "TEXT"
+    case "char"    => "TEXT"
+    case "string"  => "TEXT"
+    case _         => throw new UnsupportedTypeException("Can't create DB column with unknown type '" +
+      fieldType + "'")
   }
 }
