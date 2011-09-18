@@ -46,10 +46,9 @@ class SQL(val driver: String, val jdbcURL: String) {
   def update(table: String, id: Long, fields: List[Field]) = {
     val sb = new StringBuilder
     for(i <- 0 until fields.size) {
-      if(i == fields.size - 1) {
-        sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("'")
-      } else {
-        sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("',")
+      sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("'")
+      if(i != fields.size - 1) {
+        sb.append(",")
       }
     }
     val pairs = sb.toString
