@@ -106,6 +106,8 @@ class SQL(val driver: String, val jdbcURL: String) {
         case "boolean" => java.lang.Boolean.parseBoolean(obj.asInstanceOf[java.lang.String])
         case "char"    => obj.asInstanceOf[java.lang.String].charAt(0)
         case "string"  => obj.asInstanceOf[java.lang.String]
+        case _         => throw new UnsupportedTypeException("Cannot create an object of type '" +
+          t.getName + "'")
       }
     }
   }
