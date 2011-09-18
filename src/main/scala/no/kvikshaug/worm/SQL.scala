@@ -12,6 +12,42 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   def disconnect = connection.close
 
+  def create(table: String, columns: List[Column]) {
+    // Format the columns into a string
+    val sb = new StringBuilder
+    sb.append("id INTEGER PRIMARY KEY, ")
+    for(i <- 0 until columns.size) {
+      sb.append(columns(i).name).append(" ").append(dbTypeOf(columns(i).fieldType))
+      if(i != columns.size - 1) {
+        sb.append(", ")
+      }
+    }
+    for(i <- 0 until columns.size) {
+      if(columns(i).fk.isDefined) {
+        sb.append(", FOREIGN KEY(").append(columns(i).name).append(") REFERENCES ")
+          .append(columns(i).fk.get.otherTable).append("(id)")
+      }
+    }
+
+    val query = String.format("CREATE TABLE IF NOT EXISTS %s (%s);", table, sb.toString)
+    val statement = connection.prepareStatement(query)
+    statement.execute
+  }
+
+  private def dbTypeOf(fieldType: String) = fieldType match {
+    case "double"  => "NUMERIC"
+    case "float"   => "NUMERIC"
+    case "long"    => "NUMERIC"
+    case "int"     => "NUMERIC"
+    case "short"   => "NUMERIC"
+    case "byte"    => "NUMERIC"
+    case "boolean" => "TEXT"
+    case "char"    => "TEXT"
+    case "string"  => "TEXT"
+    case _         => throw new UnsupportedTypeException("Can't create DB column with unknown type '" +
+      fieldType + "'")
+  }
+
   def selectAll[T](table: String, constructor: Constructor[T]) = {
     // todo - sanitize table String - SQL injection
     executeSelect(connection.prepareStatement(String.format("select * from '%s';", table)), constructor)

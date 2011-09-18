@@ -20,6 +20,5 @@ Worm is documented at the [github wiki](https://github.com/murr4y/worm/wiki).
 
 ## TODO/Thoughts
 
-- At the moment, you're required to create the database schema manually. Could/should this be automated in some way?
 - It can't store lists or arrays.
 - I have only tested the application against SQLite. I expect issues with other databases related to column types.

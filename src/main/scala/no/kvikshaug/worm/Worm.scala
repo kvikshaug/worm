@@ -6,6 +6,8 @@ import java.sql.SQLException
 import scala.collection.JavaConverters._
 
 case class Field(name: String, value: Any)
+case class Column(name: String, fieldType: String, fk: Option[ForeignKey])
+case class ForeignKey(otherTable: String)
 
 object Worm {
   var sql: Option[SQL] = None
@@ -14,6 +16,27 @@ object Worm {
   }
 
   def disconnect { if(sql isDefined) { sql.get.disconnect; sql = None } }
+
+  def createJava[T <: Worm](c: Class[_ <: Worm]): Unit = { create(Manifest.classType(c)) }
+
+  def create[T <: Worm: ClassManifest]: Unit = {
+    if(sql isEmpty) {
+      throw new NotConnectedException("You need to connect to the database before using it.")
+    }
+    val columns = classManifest[T].erasure.getDeclaredFields.map { f =>
+      f.setAccessible(true)
+      if(classOf[Worm].isAssignableFrom(f.getType)) {
+        // Relation
+        Worm.create(Manifest.classType(f.getType))
+        Column(f.getName, "int", Some(ForeignKey(f.getType.getSimpleName)))
+      } else {
+        Column(f.getName,
+          f.getType.getSimpleName.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase,
+          None)
+      }
+    }.toList
+    sql.get.create(classManifest[T].erasure.getSimpleName, columns)
+  }
 
   def getJavaWhere[T <: Worm](c: Class[_ <: Worm], whereClause: String): Option[T] =
     getWhere[T](whereClause)(Manifest.classType(c))
