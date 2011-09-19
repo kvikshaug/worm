@@ -33,26 +33,14 @@ object Worm {
     sql.get.create(classManifest[T].erasure.getSimpleName, columns)
   }
 
-  def getWith[T <: Worm: ClassManifest](sqlString: String): Option[T] = {
-    if(sql isEmpty) {
-      throw new NotConnectedException("You need to connect to the database before using it.")
-    }
-    val constructor = classManifest[T].erasure.getConstructors()(0)
-    val row = sql.get.selectWith(classManifest[T].erasure.getSimpleName, sqlString, constructor)
-    if(row isEmpty) {
-      return None
-    }
-    val obj = constructor.newInstance(row.get.values: _*).asInstanceOf[T]
-    obj.wormDbId = Some(row.get.id)
-    Some(obj)
-  }
+  def get[T <: Worm: ClassManifest]: List[T] = getWith[T]("")
 
-  def get[T <: Worm: ClassManifest]: List[T] = {
+  def getWith[T <: Worm: ClassManifest](sqlString: String): List[T] = {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
     val constructor = classManifest[T].erasure.getConstructors()(0)
-    val rows = sql.get.selectAll(classManifest[T].erasure.getSimpleName, constructor)
+    val rows = sql.get.select(classManifest[T].erasure.getSimpleName, sqlString, constructor)
     val objects = rows.map { row =>
       val obj = constructor.newInstance(row.values: _*).asInstanceOf[T]
       obj.wormDbId = Some(row.id)
@@ -64,8 +52,8 @@ object Worm {
 
 object JWorm {
   def create[T <: Worm](c: Class[_ <: Worm]): Unit = { Worm.create(Manifest.classType(c)) }    
-  def getWith[T <: Worm](c: Class[_ <: Worm], sql: String): Option[T] =
-    Worm.getWith[T](sql)(Manifest.classType(c))
+  def getWith[T <: Worm](c: Class[_ <: Worm], sql: String): java.util.List[T] =
+    Worm.getWith[T](sql)(Manifest.classType(c)).asJava
   def get[T <: Worm](c: Class[_ <: Worm]): java.util.List[T] = Worm.get[T](Manifest.classType(c)).asJava
 }
 

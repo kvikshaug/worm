@@ -38,14 +38,9 @@ class SQL(val db: String, val driver: String, val jdbcURL: String) {
     statement.execute
   }
 
-  def selectAll[T](table: String, constructor: Constructor[T]) = {
-    // todo - sanitize table String - SQL injection
-    executeSelect(connection.prepareStatement(String.format("select * from '%s';", table)), constructor)
-  }
-
-  def selectWith[T](table: String, sql: String, constructor: Constructor[T]) = {
+  def select[T](table: String, sql: String, constructor: Constructor[T]) = {
     // todo - sanitize table String AND whereClause String - SQL injection
-    returnQuery(String.format("select * from '%s' %s;", table, sql), constructor)
+    executeSelect(connection.prepareStatement(String.format("select * from '%s' %s;", table, sql)), constructor)
   }
 
   def insert(table: String, fields: List[Field]) = {
@@ -89,14 +84,6 @@ class SQL(val db: String, val driver: String, val jdbcURL: String) {
     statement.getUpdateCount
   }
 
-  private def returnQuery[T](query: String, constructor: Constructor[T]) = {
-    val rows = executeSelect(connection.prepareStatement(query), constructor)
-    if(rows.size == 1)
-      Some(rows(0))
-    else
-      None
-  }
-
   private def executeSelect[T](statement: PreparedStatement, constructor: Constructor[T]): List[Row] = {
     statement.execute
     val resultset = statement.getResultSet()
@@ -127,9 +114,9 @@ class SQL(val db: String, val driver: String, val jdbcURL: String) {
     if(classOf[Worm].isAssignableFrom(t)) {
       // Relation
       val constructor = t.getConstructors()(0)
-      val row = selectWith(t.getSimpleName, "where id='" + obj.toString + "'", constructor)
-      val inner = constructor.newInstance(row.get.values: _*).asInstanceOf[Worm]
-      inner.wormDbId = Some(row.get.id)
+      val rows = select(t.getSimpleName, "where id='" + obj.toString + "'", constructor)
+      val inner = constructor.newInstance(rows(0).values: _*).asInstanceOf[Worm]
+      inner.wormDbId = Some(rows(0).id)
       inner
     } else {
       t.getSimpleName.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase match {

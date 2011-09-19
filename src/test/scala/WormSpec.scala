@@ -81,11 +81,11 @@ class WormSpec extends Spec with ShouldMatchers {
         list(0) should be === Bar("Bar2")
       }
 
-      it("get a Foo when searching with constraints") {
-        val res = Worm.getWith[Foo]("where d > '3'")
-        res.isDefined should be === true
-        res.get should be === foo
-        res.get.bar should be === Bar("Bar2")
+      it("get Foos when searching with constraints") {
+        val list = Worm.getWith[Foo]("where d > '3'")
+        list.size should be === 1
+        list(0) should be === foo
+        list(0).bar should be === Bar("Bar2")
       }
 
       it("delete the foo") {
