@@ -10,3 +10,5 @@ libraryDependencies ++= Seq(
   "com.novocode" % "junit-interface" % "0.7" % "test",
   "org.xerial" % "sqlite-jdbc" % "3.7.2"
 )
+
+parallelExecution in Test := false
