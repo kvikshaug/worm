@@ -40,11 +40,11 @@ public class ConnectedJWormTest {
         assertEquals(list.get(0).wormDbId().get(), jfoo.wormDbId().get());
 
         // Retrieve the stored object with a check
-        //Option<JFoo> t = JWorm.getWith(JFoo.class, "where l < 150");
+        list = JWorm.getWith(JFoo.class, "where l < 150");
 
         // Check that it's the only one and that it has the same ID
-        //assertTrue(list.size() == 1);
-        //assertEquals(list.get(0).wormDbId().get(), jfoo.wormDbId().get());
+        assertTrue(list.size() == 1);
+        assertEquals(list.get(0).wormDbId().get(), jfoo.wormDbId().get());
 
         // Delete the object
         jfoo.delete();
