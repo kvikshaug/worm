@@ -125,7 +125,7 @@ class Worm {
     if(wormDbId isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val fields = c.getDeclaredFields.foreach { f =>
+    c.getDeclaredFields.foreach { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // Relation
