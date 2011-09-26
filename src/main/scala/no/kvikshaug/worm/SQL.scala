@@ -5,9 +5,11 @@ import java.lang.reflect.Constructor
 
 case class Row(id: Long, values: List[AnyRef])
 
-class SQL(val db: String, val driver: String, val jdbcURL: String) {
+class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
 
-  db.toLowerCase match {
+  val db = dbRaw.toLowerCase
+
+  db match {
     case "sqlite" =>
     case _        => throw new UnsupportedDatabaseException("Worm doesn't support the '"+db+"' DB engine yet.")
   }
@@ -106,7 +108,7 @@ class SQL(val db: String, val driver: String, val jdbcURL: String) {
   /* DB-engine specific functions */
 
   // Cast and if necessary conevrt objects to their applicable types
-  private def jvmType(t: Class[_], obj: Any) = db.toLowerCase match {
+  private def jvmType(t: Class[_], obj: Any) = db match {
     case "sqlite" => jvmTypeSQLite(t, obj)
   }
 
@@ -136,12 +138,12 @@ class SQL(val db: String, val driver: String, val jdbcURL: String) {
   }
 
   // Primary key type
-  private def pkType = db.toLowerCase match {
+  private def pkType = db match {
     case "sqlite" => "INTEGER PRIMARY KEY"
   }
 
   // Column types
-  private def columnType(fieldType: String) = db.toLowerCase match {
+  private def columnType(fieldType: String) = db match {
     case "sqlite" => columnTypeSQLite(fieldType)
   }
 
