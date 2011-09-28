@@ -15,6 +15,14 @@ case class RowStructure(name: String, typeName: String)
 /* This class does not verify that a connection to SQL has been
    performed, so do that before calling using methods here */
 object Converter {
+  var db = ""
+  def setDb(db: String) = {
+    db.toLowerCase match {
+      case "sqlite" => Converter.db = db.toLowerCase
+      case _        => throw new UnsupportedDatabaseException("Worm doesn't support the '"+db+
+                         "' DB engine yet.")
+    }
+  }
 
   def objectToTable(obj: Worm): Table = {
     // Traverse all the fields of the class
@@ -70,7 +78,7 @@ object Converter {
   /* DB-engine specific functions */
 
   // Cast and if necessary convert objects to their applicable types
-  private def jvmType(obj: Any, t: Class[_]) = Worm.sql.get.db match {
+  private def jvmType(obj: Any, t: Class[_]) = db match {
     case "sqlite" => jvmTypeSQLite(obj, t)
   }
 
@@ -97,17 +105,17 @@ object Converter {
   }
 
   // Primary key type
-  private def pkType = Worm.sql.get.db match {
+  private def pkType = db match {
     case "sqlite" => "INTEGER PRIMARY KEY"
   }
 
   // Foreign key type
-  private def fkType = Worm.sql.get.db match {
+  private def fkType = db match {
     case "sqlite" => "INTEGER"
   }
 
   // Column types
-  private def columnType(fieldType: String) = Worm.sql.get.db match {
+  private def columnType(fieldType: String) = db match {
     case "sqlite" => columnTypeSQLite(fieldType)
   }
 

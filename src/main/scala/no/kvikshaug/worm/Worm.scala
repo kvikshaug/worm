@@ -11,8 +11,13 @@ case class ForeignKey(otherTable: String)
 
 object Worm {
   var sql: Option[SQL] = None
-  def connect(db: String, driver: String, jdbcURL: String) { sql = Some(new SQL(db, driver, jdbcURL)) }
-  def disconnect { if(sql isDefined) { sql.get.disconnect; sql = None } }
+  def connect(db: String, driver: String, jdbcURL: String) {
+    Converter.setDb(db)
+    sql = Some(new SQL(driver, jdbcURL))
+  }
+  def disconnect {
+    if(sql isDefined) { sql.get.disconnect; sql = None }
+  }
 
   def create[T <: Worm: ClassManifest]: Unit = {
     if(sql isEmpty) {

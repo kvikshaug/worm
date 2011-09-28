@@ -2,14 +2,8 @@ package no.kvikshaug.worm
 
 import java.sql._
 
-class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
+class SQL(val driver: String, val jdbcURL: String) {
 
-  val db = dbRaw.toLowerCase
-
-  db match {
-    case "sqlite" =>
-    case _        => throw new UnsupportedDatabaseException("Worm doesn't support the '"+db+"' DB engine yet.")
-  }
   Class.forName(driver)
   private val connection = DriverManager.getConnection(jdbcURL)
 
