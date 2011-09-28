@@ -57,14 +57,14 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     // todo - sanitize table String AND all fields - SQL injection
     val inserts = table.rows.map { row =>
       row.attribute match {
-        case ForeignKeyNew() => Some(Row(row.name, Some(insertTransformed(row.value.get.asInstanceOf[Table]).asInstanceOf[java.lang.Long]), Primitive()))
-        case Primitive()  => Some(row)
+        case ForeignKeyNew() => Row(row.name, insertTransformed(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive())
+        case Primitive()  => row
       }
-    }.flatten
+    }
     val query = String.format("insert into '%s' (%s) values (%s);",
         table.name,
         commaize(inserts.map("'" + _.name + "'")),
-        commaize(inserts.map(_.value).flatten.map("'" + _ + "'")))
+        commaize(inserts.map("'" + _.value + "'")))
     val statement = connection.prepareStatement(query)
     statement.execute
     val key = statement.getGeneratedKeys
@@ -97,23 +97,23 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
       row.attribute match {
         case ForeignKeyNew() =>
           // Check if the object has an ID
-          if(row.value.get.asInstanceOf[Table].obj.wormDbId.isDefined) {
-            updateTransformed(row.value.get.asInstanceOf[Table])
+          if(row.value.asInstanceOf[Table].obj.wormDbId.isDefined) {
+            updateTransformed(row.value.asInstanceOf[Table])
             None
           } else {
-            Some(Row(row.name, Some(insertTransformed(row.value.get.asInstanceOf[Table]).asInstanceOf[java.lang.Long]), Primitive()))
+            Some(Row(row.name, insertTransformed(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive()))
           }
         case Primitive() => Some(row)
       }
     }.flatten
     val sb = new StringBuilder
     for(i <- 0 until rows.size) {
-      sb.append("'").append(rows(i).name).append("'='").append(rows(i).value.get).append("'")
+      sb.append("'").append(rows(i).name).append("'='").append(rows(i).value).append("'")
       if(i != rows.size - 1) {
         sb.append(",")
       }
     }
-    val query = String.format("update '%s' set %s where id='%s';", table.name, sb.toString, table.rows(0).value.get)
+    val query = String.format("update '%s' set %s where id='%s';", table.name, sb.toString, table.rows(0).value)
     connection.prepareStatement(query).execute
   }
 

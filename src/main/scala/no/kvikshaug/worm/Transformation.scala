@@ -8,7 +8,7 @@ case class ForeignKeyNew() extends Attribute // Refactor to ForeignKey when that
 case class Primitive() extends Attribute
 
 case class Table(name: String, rows: List[Row], obj: Worm)
-case class Row(name: String, value: Option[AnyRef], attribute: Attribute = Primitive())
+case class Row(name: String, value: AnyRef, attribute: Attribute = Primitive())
 
 object Transformation {
 
@@ -20,13 +20,13 @@ object Transformation {
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // It's another custom class that extends Worm
-        Row(f.getName, Some(objectToSql(f.get(obj).asInstanceOf[Worm])), ForeignKeyNew())
+        Row(f.getName, objectToSql(f.get(obj).asInstanceOf[Worm]), ForeignKeyNew())
       //} else if() {
         // It's a collection
         
       } else {
         // It's something else, assume primitive
-        Row(f.getName, Some(f.get(obj)))
+        Row(f.getName, f.get(obj))
       }
     }.toList
     Table(obj.getClass.getSimpleName, rows, obj)
