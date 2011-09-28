@@ -53,6 +53,30 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     rows
   }
 
+  def insertTransformed(table: Table): Long = {
+    // todo - sanitize table String AND all fields - SQL injection
+    val inserts = table.rows.map { row =>
+      row.attribute match {
+        case PrimaryKey() => None
+        case ForeignKeyNew() => Some(Row(row.name, Some(insertTransformed(row.value.get.asInstanceOf[Table]).asInstanceOf[java.lang.Long]), Primitive()))
+        case Primitive()  => Some(row)
+      }
+    }.flatten
+    val query = String.format("insert into '%s' (%s) values (%s);",
+        table.name,
+        commaize(inserts.map("'" + _.name + "'")),
+        commaize(inserts.map(_.value).flatten.map("'" + _ + "'")))
+    val statement = connection.prepareStatement(query)
+    statement.execute
+    val key = statement.getGeneratedKeys
+    if(!key.next) {
+      throw new SQLException("The SQL driver didn't throw any exception, but it also said that no " +
+        "keys were inserted!\nNot really sure how that happened, or what I (the ORM) can do about it.")
+    }
+    table.obj.wormDbId = Some(key.getLong(1))
+    table.obj.wormDbId.get
+  }
+
   def insert(table: String, fields: List[Field]) = {
     // todo - sanitize table String AND all fields - SQL injection
     val query = String.format("insert into '%s' (%s) values (%s);",
