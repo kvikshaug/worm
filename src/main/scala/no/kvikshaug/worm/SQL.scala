@@ -95,7 +95,7 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
         sb.append(",")
       }
     }
-    val query = String.format("update '%s' set %s where id='%s';", table.name, sb.toString, table.rows(0).value)
+    val query = String.format("update '%s' set %s where id='%s';", table.name, sb.toString, table.obj.wormDbId.get.toString)
     connection.prepareStatement(query).execute
   }
 
