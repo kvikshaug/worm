@@ -14,7 +14,7 @@ case class RowStructure(name: String, typeName: String)
 
 /* This class does not verify that a connection to SQL has been
    performed, so do that before calling using methods here */
-object Transformation {
+object Converter {
 
   def objectToTable(obj: Worm): Table = {
     // Traverse all the fields of the class

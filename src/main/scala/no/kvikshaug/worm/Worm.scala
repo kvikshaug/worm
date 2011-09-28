@@ -18,7 +18,7 @@ object Worm {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val structure = Transformation.classToStructure[T]
+    val structure = Converter.classToStructure[T]
     sql.get.create(structure)
   }
 
@@ -29,7 +29,7 @@ object Worm {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
     val rows = sql.get.select(classManifest[T].erasure.getSimpleName, sqlString)
-    Transformation.tableToObject[T](rows)
+    Converter.tableToObject[T](rows)
   }
 }
 
@@ -56,7 +56,7 @@ class Worm {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         wormDbId.get + ".")
     }
-    val table = Transformation.objectToTable(this)
+    val table = Converter.objectToTable(this)
     Worm.sql.get.insert(table)
   }
 
@@ -67,7 +67,7 @@ class Worm {
     if(wormDbId.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val table = Transformation.objectToTable(this)
+    val table = Converter.objectToTable(this)
     Worm.sql.get.update(table)
   }
 
@@ -78,7 +78,7 @@ class Worm {
     if(wormDbId isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val table = Transformation.objectToTable(this)
+    val table = Converter.objectToTable(this)
     Worm.sql.get.delete(table)
   }
 }
