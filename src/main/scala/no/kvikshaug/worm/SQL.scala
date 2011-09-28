@@ -53,11 +53,11 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     rows
   }
 
-  def insertTransformed(table: Table): Long = {
+  def insert(table: Table): Long = {
     // todo - sanitize table String AND all fields - SQL injection
     val inserts = table.rows.map { row =>
       row.attribute match {
-        case ForeignKeyNew() => Row(row.name, insertTransformed(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive())
+        case ForeignKeyNew() => Row(row.name, insert(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive())
         case Primitive()  => row
       }
     }
@@ -76,32 +76,16 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     table.obj.wormDbId.get
   }
 
-  def insert(table: String, fields: List[Field]) = {
-    // todo - sanitize table String AND all fields - SQL injection
-    val query = String.format("insert into '%s' (%s) values (%s);",
-        table,
-        commaize(fields.map("'" + _.name + "'")),
-        commaize(fields.map("'" + _.value + "'")))
-    val statement = connection.prepareStatement(query)
-    statement.execute
-    val key = statement.getGeneratedKeys
-    if(key.next) {
-      Some(key.getObject(1).asInstanceOf[Int].toLong)
-    } else {
-      None
-    }
-  }
-
-  def updateTransformed(table: Table): Unit = {
+  def update(table: Table): Unit = {
     val rows = table.rows.map { row =>
       row.attribute match {
         case ForeignKeyNew() =>
           // Check if the object has an ID
           if(row.value.asInstanceOf[Table].obj.wormDbId.isDefined) {
-            updateTransformed(row.value.asInstanceOf[Table])
+            update(row.value.asInstanceOf[Table])
             None
           } else {
-            Some(Row(row.name, insertTransformed(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive()))
+            Some(Row(row.name, insert(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive()))
           }
         case Primitive() => Some(row)
       }
@@ -117,29 +101,13 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     connection.prepareStatement(query).execute
   }
 
-  def update(table: String, id: Long, fields: List[Field]) = {
-    val sb = new StringBuilder
-    for(i <- 0 until fields.size) {
-      sb.append("'").append(fields(i).name).append("'='").append(fields(i).value).append("'")
-      if(i != fields.size - 1) {
-        sb.append(",")
-      }
-    }
-    val pairs = sb.toString
-
-    val query = String.format("update '%s' set %s where id='%s';", table, pairs, id.toString)
-    val statement = connection.prepareStatement(query)
-    statement.execute
-    statement.getUpdateCount
-  }
-
-  def deleteTransformed(table: Table): Unit = {
+  def delete(table: Table): Unit = {
     table.rows.foreach { row =>
       row.attribute match {
         case ForeignKeyNew() =>
           // If the object has an ID, delete that too
           if(row.value.asInstanceOf[Table].obj.wormDbId.isDefined) {
-            deleteTransformed(row.value.asInstanceOf[Table])
+            delete(row.value.asInstanceOf[Table])
           }
         case _ =>
       }
@@ -148,15 +116,6 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
       table.obj.wormDbId.get.toString)
     connection.prepareStatement(query).execute
     table.obj.wormDbId = None
-  }
-
-  def delete(table: String, id: Long) = {
-    val query = String.format("delete from '%s' where id='%s';",
-      table,
-      id.toString)
-    val statement = connection.prepareStatement(query)
-    statement.execute
-    statement.getUpdateCount
   }
 
   private def commaize(list: List[_ <: Any]): String = list match {

@@ -74,7 +74,7 @@ class Worm {
         wormDbId.get + ".")
     }
     val table = Transformation.objectToSql(this)
-    Worm.sql.get.insertTransformed(table)
+    Worm.sql.get.insert(table)
   }
 
   def update(): Unit = {
@@ -85,7 +85,7 @@ class Worm {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
     val table = Transformation.objectToSql(this)
-    Worm.sql.get.updateTransformed(table)
+    Worm.sql.get.update(table)
   }
 
   def delete(): Unit = {
@@ -96,6 +96,6 @@ class Worm {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
     val table = Transformation.objectToSql(this)
-    Worm.sql.get.deleteTransformed(table)
+    Worm.sql.get.delete(table)
   }
 }
