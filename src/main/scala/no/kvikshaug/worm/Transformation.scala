@@ -9,6 +9,9 @@ case class Primitive() extends Attribute
 case class Table(name: String, rows: List[Row], obj: Worm)
 case class Row(name: String, value: AnyRef, attribute: Attribute = Primitive())
 
+case class TableStructure(name: String, rows: List[RowStructure])
+case class RowStructure(name: String, typeName: String)
+
 /* This class does not verify that a connection to SQL has been
    performed, so do that before calling using methods here */
 object Transformation {
@@ -44,6 +47,26 @@ object Transformation {
     return objects
   }
 
+  def classToStructure[T <: Worm: ClassManifest]: List[TableStructure] = {
+    var tables = List[TableStructure]()
+    val rows = RowStructure("id", pkType) :: classManifest[T].erasure.getDeclaredFields.map { f =>
+      f.setAccessible(true)
+      if(classOf[Worm].isAssignableFrom(f.getType)) {
+        // Relation
+        tables = tables ++ classToStructure(Manifest.classType(f.getType))
+        RowStructure(f.getName, fkType)
+      //} else if() {
+        // Collection
+          
+      } else {
+        RowStructure(f.getName, columnType(
+          f.getType.getSimpleName.replaceAll("(?i)integer", "int")
+           .replaceAll("(?i)character", "char").toLowerCase))
+      }
+    }.toList
+    TableStructure(classManifest[T].erasure.getSimpleName, rows) :: tables
+  }
+
   /* DB-engine specific functions */
 
   // Cast and if necessary convert objects to their applicable types
@@ -71,5 +94,34 @@ object Transformation {
           t.getName + "'")
       }
     }
+  }
+
+  // Primary key type
+  private def pkType = Worm.sql.get.db match {
+    case "sqlite" => "INTEGER PRIMARY KEY"
+  }
+
+  // Foreign key type
+  private def fkType = Worm.sql.get.db match {
+    case "sqlite" => "INTEGER"
+  }
+
+  // Column types
+  private def columnType(fieldType: String) = Worm.sql.get.db match {
+    case "sqlite" => columnTypeSQLite(fieldType)
+  }
+
+  private def columnTypeSQLite(fieldType: String) = fieldType match {
+    case "double"  => "NUMERIC"
+    case "float"   => "NUMERIC"
+    case "long"    => "NUMERIC"
+    case "int"     => "NUMERIC"
+    case "short"   => "NUMERIC"
+    case "byte"    => "NUMERIC"
+    case "boolean" => "TEXT"
+    case "char"    => "TEXT"
+    case "string"  => "TEXT"
+    case _         => throw new UnsupportedTypeException("Can't create DB column with unknown type '" +
+      fieldType + "'")
   }
 }

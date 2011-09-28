@@ -15,26 +15,13 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
 
   def disconnect = connection.close
 
-  def create(table: String, columns: List[Column]) {
-    // Format the columns into a string
-    val sb = new StringBuilder
-    sb.append("id " + pkType + ", ")
-    for(i <- 0 until columns.size) {
-      sb.append(columns(i).name).append(" ").append(columnType(columns(i).fieldType))
-      if(i != columns.size - 1) {
-        sb.append(", ")
-      }
+  def create(tables: List[TableStructure]) = {
+    tables foreach { table =>
+      val query = String.format("create table if not exists %s (%s);",
+        table.name, commaize(table.rows.map(r => r.name + " " + r.typeName)))
+      val statement = connection.prepareStatement(query)
+      statement.execute
     }
-    for(i <- 0 until columns.size) {
-      if(columns(i).fk.isDefined) {
-        sb.append(", FOREIGN KEY(").append(columns(i).name).append(") REFERENCES ")
-          .append(columns(i).fk.get.otherTable).append("(id)")
-      }
-    }
-
-    val query = String.format("CREATE TABLE IF NOT EXISTS %s (%s);", table, sb.toString)
-    val statement = connection.prepareStatement(query)
-    statement.execute
   }
 
   def select[T](table: String, sql: String): List[List[AnyRef]] = {
@@ -120,29 +107,5 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     case List()  => ""
     case List(x) => x.toString
     case _       => list(0) + ", " + commaize(list.tail)
-  }
-
-  // Primary key type
-  private def pkType = db match {
-    case "sqlite" => "INTEGER PRIMARY KEY"
-  }
-
-  // Column types
-  private def columnType(fieldType: String) = db match {
-    case "sqlite" => columnTypeSQLite(fieldType)
-  }
-
-  private def columnTypeSQLite(fieldType: String) = fieldType match {
-    case "double"  => "NUMERIC"
-    case "float"   => "NUMERIC"
-    case "long"    => "NUMERIC"
-    case "int"     => "NUMERIC"
-    case "short"   => "NUMERIC"
-    case "byte"    => "NUMERIC"
-    case "boolean" => "TEXT"
-    case "char"    => "TEXT"
-    case "string"  => "TEXT"
-    case _         => throw new UnsupportedTypeException("Can't create DB column with unknown type '" +
-      fieldType + "'")
   }
 }
