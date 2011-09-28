@@ -1,7 +1,6 @@
 package no.kvikshaug.worm
 
 import java.sql._
-import java.lang.reflect.Constructor
 
 class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
 
@@ -38,17 +37,16 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     statement.execute
   }
 
-  def select[T](table: String, sql: String, constructor: Constructor[T]): List[List[AnyRef]] = {
+  def select[T](table: String, sql: String): List[List[AnyRef]] = {
     // todo - sanitize table String AND whereClause String - SQL injection
     val statement = connection.prepareStatement(String.format("select * from '%s' %s;", table, sql))
     statement.execute
     val resultset = statement.getResultSet()
     var rows = List[List[AnyRef]]()
     while(resultset.next()) {
-      val types = constructor.getParameterTypes
-      val values = for(i <- 2 to resultset.getMetaData().getColumnCount())
-        yield jvmType(types(i-2), resultset.getObject(i))
-      rows = (resultset.getLong(1).asInstanceOf[java.lang.Long] :: values.toList.asInstanceOf[List[AnyRef]]) :: rows
+      val row = for(i <- 1 to resultset.getMetaData().getColumnCount())
+        yield resultset.getObject(i)
+      rows = row.toList :: rows
     }
     rows
   }
@@ -122,38 +120,6 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     case List()  => ""
     case List(x) => x.toString
     case _       => list(0) + ", " + commaize(list.tail)
-  }
-
-  /* DB-engine specific functions */
-
-  // Cast and if necessary conevrt objects to their applicable types
-  private def jvmType(t: Class[_], obj: Any) = db match {
-    case "sqlite" => jvmTypeSQLite(t, obj)
-  }
-
-  private def jvmTypeSQLite(t: Class[_], obj: Any) = {
-    if(classOf[Worm].isAssignableFrom(t)) {
-      // Relation
-      val constructor = t.getConstructors()(0)
-      val rows = select(t.getSimpleName, "where id='" + obj.toString + "'", constructor)
-      val inner = constructor.newInstance(rows(0).tail: _*).asInstanceOf[Worm]
-      inner.wormDbId = Some(rows(0).head.asInstanceOf[Long])
-      inner
-    } else {
-      t.getSimpleName.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase match {
-        case "double"  => obj.asInstanceOf[java.lang.Double]
-        case "float"   => obj.asInstanceOf[java.lang.Double].floatValue
-        case "long"    => obj.asInstanceOf[java.lang.Integer].longValue
-        case "int"     => obj.asInstanceOf[java.lang.Integer]
-        case "short"   => obj.asInstanceOf[java.lang.Integer].shortValue
-        case "byte"    => obj.asInstanceOf[java.lang.Integer].byteValue
-        case "boolean" => java.lang.Boolean.parseBoolean(obj.asInstanceOf[java.lang.String])
-        case "char"    => obj.asInstanceOf[java.lang.String].charAt(0)
-        case "string"  => obj.asInstanceOf[java.lang.String]
-        case _         => throw new UnsupportedTypeException("Cannot create an object of type '" +
-          t.getName + "'")
-      }
-    }
   }
 
   // Primary key type

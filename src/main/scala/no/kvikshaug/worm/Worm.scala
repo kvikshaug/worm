@@ -39,14 +39,8 @@ object Worm {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val constructor = classManifest[T].erasure.getConstructors()(0)
-    val rows = sql.get.select(classManifest[T].erasure.getSimpleName, sqlString, constructor)
-    val objects = rows.map { row =>
-      val obj = constructor.newInstance(row.tail: _*).asInstanceOf[T]
-      obj.wormDbId = Some(row.head.asInstanceOf[Long])
-      obj
-    }
-    return objects
+    val rows = sql.get.select(classManifest[T].erasure.getSimpleName, sqlString)
+    Transformation.tableToObject[T](rows)
   }
 }
 
