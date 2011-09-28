@@ -11,7 +11,7 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     case _        => throw new UnsupportedDatabaseException("Worm doesn't support the '"+db+"' DB engine yet.")
   }
   Class.forName(driver)
-  private var connection = DriverManager.getConnection(jdbcURL)
+  private val connection = DriverManager.getConnection(jdbcURL)
 
   def disconnect = connection.close
 
