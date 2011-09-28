@@ -136,5 +136,6 @@ class Worm {
       }
     }
     Worm.sql.get.delete(c.getSimpleName, wormDbId.get)
+    wormDbId = None
   }
 }
