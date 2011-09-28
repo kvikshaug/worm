@@ -9,10 +9,10 @@ case class Primitive() extends Attribute
 case class Table(name: String, rows: List[Row], obj: Worm)
 case class Row(name: String, value: AnyRef, attribute: Attribute = Primitive())
 
+/* This class does not verify that a connection to SQL has been
+   performed, so do that before calling using methods here */
 object Transformation {
 
-  /* Does not verify that a connection to SQL has been
-     performed, so do that before calling this method */
   def objectToTable(obj: Worm): Table = {
     // Traverse all the fields of the class
     val rows = obj.getClass.getDeclaredFields.map { f =>
