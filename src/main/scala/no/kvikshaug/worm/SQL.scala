@@ -38,9 +38,19 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     statement.execute
   }
 
-  def select[T](table: String, sql: String, constructor: Constructor[T]) = {
+  def select[T](table: String, sql: String, constructor: Constructor[T]): List[List[AnyRef]] = {
     // todo - sanitize table String AND whereClause String - SQL injection
-    executeSelect(connection.prepareStatement(String.format("select * from '%s' %s;", table, sql)), constructor)
+    val statement = connection.prepareStatement(String.format("select * from '%s' %s;", table, sql))
+    statement.execute
+    val resultset = statement.getResultSet()
+    var rows = List[List[AnyRef]]()
+    while(resultset.next()) {
+      val types = constructor.getParameterTypes
+      val values = for(i <- 2 to resultset.getMetaData().getColumnCount())
+        yield jvmType(types(i-2), resultset.getObject(i))
+      rows = (resultset.getLong(1).asInstanceOf[java.lang.Long] :: values.toList.asInstanceOf[List[AnyRef]]) :: rows
+    }
+    rows
   }
 
   def insert(table: String, fields: List[Field]) = {
@@ -82,19 +92,6 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     val statement = connection.prepareStatement(query)
     statement.execute
     statement.getUpdateCount
-  }
-
-  private def executeSelect[T](statement: PreparedStatement, constructor: Constructor[T]): List[List[AnyRef]] = {
-    statement.execute
-    val resultset = statement.getResultSet()
-    var rows = List[List[AnyRef]]()
-    while(resultset.next()) {
-      val types = constructor.getParameterTypes
-      val values = for(i <- 2 to resultset.getMetaData().getColumnCount())
-        yield jvmType(types(i-2), resultset.getObject(i))
-      rows = (resultset.getLong(1).asInstanceOf[java.lang.Long] :: values.toList.asInstanceOf[List[AnyRef]]) :: rows
-    }
-    rows
   }
 
   private def commaize(list: List[_ <: Any]): String = list match {
