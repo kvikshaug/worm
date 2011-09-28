@@ -57,7 +57,6 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     // todo - sanitize table String AND all fields - SQL injection
     val inserts = table.rows.map { row =>
       row.attribute match {
-        case PrimaryKey() => None
         case ForeignKeyNew() => Some(Row(row.name, Some(insertTransformed(row.value.get.asInstanceOf[Table]).asInstanceOf[java.lang.Long]), Primitive()))
         case Primitive()  => Some(row)
       }
@@ -96,10 +95,9 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
   def updateTransformed(table: Table): Unit = {
     val rows = table.rows.map { row =>
       row.attribute match {
-        case PrimaryKey() => None
         case ForeignKeyNew() =>
           // Check if the object has an ID
-          if(row.value.get.asInstanceOf[Table].rows(0).value.isDefined) {
+          if(row.value.get.asInstanceOf[Table].obj.wormDbId.isDefined) {
             updateTransformed(row.value.get.asInstanceOf[Table])
             None
           } else {

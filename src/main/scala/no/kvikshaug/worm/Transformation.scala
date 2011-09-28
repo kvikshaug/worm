@@ -4,7 +4,6 @@ import java.lang.reflect.{Field => JVMField}
 //import java.lang.reflect.Field
 
 class Attribute
-case class PrimaryKey() extends Attribute
 case class ForeignKeyNew() extends Attribute // Refactor to ForeignKey when that class is removed
 case class Primitive() extends Attribute
 
@@ -17,8 +16,7 @@ object Transformation {
      performed, so do that before calling this method */
   def objectToSql(obj: Worm): Table = {
     // Traverse all the fields of the class
-    val rows = Row("id", obj.wormDbId.asInstanceOf[Option[java.lang.Long]], PrimaryKey()) ::
-      obj.getClass.getDeclaredFields.map { f =>
+    val rows = obj.getClass.getDeclaredFields.map { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // It's another custom class that extends Worm
