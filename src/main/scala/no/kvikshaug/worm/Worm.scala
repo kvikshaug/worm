@@ -11,26 +11,20 @@ case class ForeignKey(otherTable: String)
 
 object Worm {
   var sql: Option[SQL] = None
-  def connect(db: String, driver: String, jdbcURL: String) { sql = Some(new SQL(db, driver, jdbcURL)) }
-  def disconnect { if(sql isDefined) { sql.get.disconnect; sql = None } }
+  def connect(db: String, driver: String, jdbcURL: String) {
+    Converter.setDb(db)
+    sql = Some(new SQL(driver, jdbcURL))
+  }
+  def disconnect {
+    if(sql isDefined) { sql.get.disconnect; sql = None }
+  }
 
   def create[T <: Worm: ClassManifest]: Unit = {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val columns = classManifest[T].erasure.getDeclaredFields.map { f =>
-      f.setAccessible(true)
-      if(classOf[Worm].isAssignableFrom(f.getType)) {
-        // Relation
-        Worm.create(Manifest.classType(f.getType))
-        Column(f.getName, "int", Some(ForeignKey(f.getType.getSimpleName)))
-      } else {
-        Column(f.getName,
-          f.getType.getSimpleName.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase,
-          None)
-      }
-    }.toList
-    sql.get.create(classManifest[T].erasure.getSimpleName, columns)
+    val structure = Converter.classToStructure[T]
+    sql.get.create(structure)
   }
 
   def get[T <: Worm: ClassManifest]: List[T] = getWith[T]("")
@@ -39,14 +33,8 @@ object Worm {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val constructor = classManifest[T].erasure.getConstructors()(0)
-    val rows = sql.get.select(classManifest[T].erasure.getSimpleName, sqlString, constructor)
-    val objects = rows.map { row =>
-      val obj = constructor.newInstance(row.values: _*).asInstanceOf[T]
-      obj.wormDbId = Some(row.id)
-      obj
-    }
-    return objects
+    val rows = sql.get.select(classManifest[T].erasure.getSimpleName, sqlString)
+    Converter.tableToObject[T](rows)
   }
 }
 
@@ -73,22 +61,8 @@ class Worm {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         wormDbId.get + ".")
     }
-    val fields = c.getDeclaredFields.map { f =>
-      f.setAccessible(true)
-      if(classOf[Worm].isAssignableFrom(f.getType)) {
-        Field(f.getName, f.get(this).asInstanceOf[Worm].insert)
-      } else {
-        Field(f.getName, f.get(this))
-      }
-    }.toList
-    val key = Worm.sql.get.insert(c.getSimpleName, fields)
-    if(key isEmpty) {
-      throw new SQLException("The SQL driver didn't throw any exception, but it also said that no keys were inserted!\n" +
-      "Not really sure how that happened, or what I (the ORM) can do about it.")
-    } else {
-      wormDbId = Some(key.get)
-      wormDbId.get
-    }
+    val table = Converter.objectToTable(this)
+    Worm.sql.get.insert(table)
   }
 
   def update(): Unit = {
@@ -98,24 +72,8 @@ class Worm {
     if(wormDbId.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val fields = c.getDeclaredFields.map { f =>
-      f.setAccessible(true)
-      if(classOf[Worm].isAssignableFrom(f.getType)) {
-        // Relation
-        val instance = f.get(this).asInstanceOf[Worm]
-        if(instance.wormDbId.isDefined) {
-          // The related object is already inserted, so update it
-          instance.update
-          Some(Field(f.getName, instance.wormDbId.get))
-        } else {
-          // The related object isn't defined, it was changed after insertion, so re-insert it
-          Some(Field(f.getName, instance.insert))
-        }
-      } else {
-        Some(Field(f.getName, f.get(this)))
-      }
-    }.flatten.toList
-    Worm.sql.get.update(c.getSimpleName, wormDbId.get, fields)
+    val table = Converter.objectToTable(this)
+    Worm.sql.get.update(table)
   }
 
   def delete(): Unit = {
@@ -125,16 +83,7 @@ class Worm {
     if(wormDbId isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    c.getDeclaredFields.foreach { f =>
-      f.setAccessible(true)
-      if(classOf[Worm].isAssignableFrom(f.getType)) {
-        // Relation
-        val instance = f.get(this).asInstanceOf[Worm]
-        if(instance.wormDbId.isDefined) {
-          f.get(this).asInstanceOf[Worm].delete
-        }
-      }
-    }
-    Worm.sql.get.delete(c.getSimpleName, wormDbId.get)
+    val table = Converter.objectToTable(this)
+    Worm.sql.get.delete(table)
   }
 }
