@@ -93,6 +93,32 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     }
   }
 
+  def updateTransformed(table: Table): Unit = {
+    val rows = table.rows.map { row =>
+      row.attribute match {
+        case PrimaryKey() => None
+        case ForeignKeyNew() =>
+          // Check if the object has an ID
+          if(row.value.get.asInstanceOf[Table].rows(0).value.isDefined) {
+            updateTransformed(row.value.get.asInstanceOf[Table])
+            None
+          } else {
+            Some(Row(row.name, Some(insertTransformed(row.value.get.asInstanceOf[Table]).asInstanceOf[java.lang.Long]), Primitive()))
+          }
+        case Primitive() => Some(row)
+      }
+    }.flatten
+    val sb = new StringBuilder
+    for(i <- 0 until rows.size) {
+      sb.append("'").append(rows(i).name).append("'='").append(rows(i).value.get).append("'")
+      if(i != rows.size - 1) {
+        sb.append(",")
+      }
+    }
+    val query = String.format("update '%s' set %s where id='%s';", table.name, sb.toString, table.rows(0).value.get)
+    connection.prepareStatement(query).execute
+  }
+
   def update(table: String, id: Long, fields: List[Field]) = {
     val sb = new StringBuilder
     for(i <- 0 until fields.size) {
