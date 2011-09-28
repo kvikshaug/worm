@@ -73,7 +73,7 @@ class Worm {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         wormDbId.get + ".")
     }
-    val table = Transformation.objectToSql(this)
+    val table = Transformation.objectToTable(this)
     Worm.sql.get.insert(table)
   }
 
@@ -84,7 +84,7 @@ class Worm {
     if(wormDbId.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val table = Transformation.objectToSql(this)
+    val table = Transformation.objectToTable(this)
     Worm.sql.get.update(table)
   }
 
@@ -95,7 +95,7 @@ class Worm {
     if(wormDbId isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val table = Transformation.objectToSql(this)
+    val table = Transformation.objectToTable(this)
     Worm.sql.get.delete(table)
   }
 }

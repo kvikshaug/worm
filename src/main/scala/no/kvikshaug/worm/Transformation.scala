@@ -14,7 +14,7 @@ object Transformation {
 
   /* Does not verify that a connection to SQL has been
      performed, so do that before calling this method */
-  def objectToSql(obj: Worm): Table = {
+  def objectToTable(obj: Worm): Table = {
     // Traverse all the fields of the class
     val rows = obj.getClass.getDeclaredFields.map { f =>
       f.setAccessible(true)
