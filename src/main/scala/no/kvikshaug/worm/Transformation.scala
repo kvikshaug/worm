@@ -1,8 +1,6 @@
 package no.kvikshaug.worm
 
-import java.lang.reflect.{Field => JVMField}
 import java.lang.reflect.Constructor
-//import java.lang.reflect.Field
 
 class Attribute
 case class ForeignKeyNew() extends Attribute // Refactor to ForeignKey when that class is removed
