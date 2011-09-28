@@ -17,7 +17,8 @@ object Transformation {
      performed, so do that before calling this method */
   def objectToSql(obj: Worm): Table = {
     // Traverse all the fields of the class
-    val rows = obj.getClass.getDeclaredFields.map { f =>
+    val rows = Row("id", obj.wormDbId.asInstanceOf[Option[java.lang.Long]], PrimaryKey()) ::
+      obj.getClass.getDeclaredFields.map { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // It's another custom class that extends Worm
