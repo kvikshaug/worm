@@ -133,6 +133,23 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     statement.getUpdateCount
   }
 
+  def deleteTransformed(table: Table): Unit = {
+    table.rows.foreach { row =>
+      row.attribute match {
+        case ForeignKeyNew() =>
+          // If the object has an ID, delete that too
+          if(row.value.asInstanceOf[Table].obj.wormDbId.isDefined) {
+            deleteTransformed(row.value.asInstanceOf[Table])
+          }
+        case _ =>
+      }
+    }
+    val query = String.format("delete from '%s' where id='%s';", table.name,
+      table.obj.wormDbId.get.toString)
+    connection.prepareStatement(query).execute
+    table.obj.wormDbId = None
+  }
+
   def delete(table: String, id: Long) = {
     val query = String.format("delete from '%s' where id='%s';",
       table,
