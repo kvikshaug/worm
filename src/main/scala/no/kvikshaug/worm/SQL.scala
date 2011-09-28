@@ -3,8 +3,6 @@ package no.kvikshaug.worm
 import java.sql._
 import java.lang.reflect.Constructor
 
-case class Row(id: Long, values: List[AnyRef])
-
 class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
 
   val db = dbRaw.toLowerCase
@@ -86,15 +84,15 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
     statement.getUpdateCount
   }
 
-  private def executeSelect[T](statement: PreparedStatement, constructor: Constructor[T]): List[Row] = {
+  private def executeSelect[T](statement: PreparedStatement, constructor: Constructor[T]): List[List[AnyRef]] = {
     statement.execute
     val resultset = statement.getResultSet()
-    var rows = List[Row]()
+    var rows = List[List[AnyRef]]()
     while(resultset.next()) {
       val types = constructor.getParameterTypes
       val values = for(i <- 2 to resultset.getMetaData().getColumnCount())
         yield jvmType(types(i-2), resultset.getObject(i))
-      rows = Row(resultset.getObject(1).asInstanceOf[Int].toLong, values.toList.asInstanceOf[List[AnyRef]]) :: rows
+      rows = (resultset.getLong(1).asInstanceOf[java.lang.Long] :: values.toList.asInstanceOf[List[AnyRef]]) :: rows
     }
     rows
   }
@@ -117,8 +115,8 @@ class SQL(val dbRaw: String, val driver: String, val jdbcURL: String) {
       // Relation
       val constructor = t.getConstructors()(0)
       val rows = select(t.getSimpleName, "where id='" + obj.toString + "'", constructor)
-      val inner = constructor.newInstance(rows(0).values: _*).asInstanceOf[Worm]
-      inner.wormDbId = Some(rows(0).id)
+      val inner = constructor.newInstance(rows(0).tail: _*).asInstanceOf[Worm]
+      inner.wormDbId = Some(rows(0).head.asInstanceOf[Long])
       inner
     } else {
       t.getSimpleName.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase match {
