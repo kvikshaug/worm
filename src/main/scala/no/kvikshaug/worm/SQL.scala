@@ -36,7 +36,7 @@ class SQL(val driver: String, val jdbcURL: String) {
     // todo - sanitize table String AND all fields - SQL injection
     val inserts = table.rows.map { row =>
       row.attribute match {
-        case ForeignKeyNew() => Row(row.name, insert(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive())
+        case ForeignKey() => Row(row.name, insert(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive())
         case Primitive()  => row
       }
     }
@@ -58,7 +58,7 @@ class SQL(val driver: String, val jdbcURL: String) {
   def update(table: Table): Unit = {
     val rows = table.rows.map { row =>
       row.attribute match {
-        case ForeignKeyNew() =>
+        case ForeignKey() =>
           // Check if the object has an ID
           if(row.value.asInstanceOf[Table].obj.wormDbId.isDefined) {
             update(row.value.asInstanceOf[Table])
@@ -83,7 +83,7 @@ class SQL(val driver: String, val jdbcURL: String) {
   def delete(table: Table): Unit = {
     table.rows.foreach { row =>
       row.attribute match {
-        case ForeignKeyNew() =>
+        case ForeignKey() =>
           // If the object has an ID, delete that too
           if(row.value.asInstanceOf[Table].obj.wormDbId.isDefined) {
             delete(row.value.asInstanceOf[Table])

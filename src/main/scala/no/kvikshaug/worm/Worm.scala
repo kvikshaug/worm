@@ -5,10 +5,6 @@ import java.sql.SQLException
 
 import scala.collection.JavaConverters._
 
-case class Field(name: String, value: Any)
-case class Column(name: String, fieldType: String, fk: Option[ForeignKey])
-case class ForeignKey(otherTable: String)
-
 object Worm {
   var sql: Option[SQL] = None
   def connect(db: String, driver: String, jdbcURL: String) {

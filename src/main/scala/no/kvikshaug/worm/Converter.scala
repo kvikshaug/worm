@@ -3,7 +3,7 @@ package no.kvikshaug.worm
 import java.lang.reflect.Constructor
 
 class Attribute
-case class ForeignKeyNew() extends Attribute // Refactor to ForeignKey when that class is removed
+case class ForeignKey() extends Attribute // Refactor to ForeignKey when that class is removed
 case class Primitive() extends Attribute
 
 case class Table(name: String, rows: List[Row], obj: Worm)
@@ -30,7 +30,7 @@ object Converter {
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // It's another custom class that extends Worm
-        Row(f.getName, objectToTable(f.get(obj).asInstanceOf[Worm]), ForeignKeyNew())
+        Row(f.getName, objectToTable(f.get(obj).asInstanceOf[Worm]), ForeignKey())
       //} else if() {
         // It's a collection
         
