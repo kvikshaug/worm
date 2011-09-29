@@ -1,6 +1,8 @@
 package no.kvikshaug.worm
 
+import java.lang.reflect.Field
 import java.lang.reflect.Constructor
+import java.lang.reflect.ParameterizedType
 
 class Attribute
 case class ForeignKey() extends Attribute // Refactor to ForeignKey when that class is removed
@@ -56,26 +58,47 @@ object Converter {
   }
 
   def classToStructure[T <: Worm: ClassManifest]: List[TableStructure] = {
+    def unwrapSeq(containerName: String, f: Field): List[TableStructure] = {
+      val seqType = f.getGenericType.asInstanceOf[ParameterizedType]
+                     .getActualTypeArguments()(0).asInstanceOf[java.lang.Class[_]]
+      if(classOf[Worm].isAssignableFrom(seqType)) {
+        return TableStructure(containerName + seqType.getSimpleName + "s", List(
+          RowStructure("id", pkType),
+          RowStructure(fieldName(containerName), fkType),
+          RowStructure(f.getName, fkType))) ::
+            classToStructure(Manifest.classType(seqType))
+      } else {
+        return List(TableStructure(containerName + seqType.getSimpleName + "s", List(
+          RowStructure("id", pkType),
+          RowStructure(fieldName(containerName), fkType),
+          RowStructure(fieldName(seqType.getSimpleName), columnType(commonName(seqType.getSimpleName))))))
+      }
+    }
     var tables = List[TableStructure]()
     val rows = RowStructure("id", pkType) :: classManifest[T].erasure.getDeclaredFields.map { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // Relation
         tables = tables ++ classToStructure(Manifest.classType(f.getType))
-        RowStructure(f.getName, fkType)
-      //} else if() {
-        // Collection
-          
+        Some(RowStructure(f.getName, fkType))
+      } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
+                classOf[Seq[_]].isAssignableFrom(f.getType)) {
+        // Sequence collection
+        tables = tables ++ unwrapSeq(classManifest[T].erasure.getSimpleName, f)
+        None
       } else {
-        RowStructure(f.getName, columnType(
-          f.getType.getSimpleName.replaceAll("(?i)integer", "int")
-           .replaceAll("(?i)character", "char").toLowerCase))
+        Some(RowStructure(f.getName, columnType(commonName(f.getType.getSimpleName))))
       }
-    }.toList
+    }.flatten.toList
     TableStructure(classManifest[T].erasure.getSimpleName, rows) :: tables
   }
 
   /* DB-engine specific functions */
+
+  private def fieldName(name: String) = name.head.toLower + name.tail + 's'
+
+  private def commonName(name: String) =
+    name.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase
 
   // Cast and if necessary convert objects to their applicable types
   private def jvmType(obj: Any, t: Class[_]) = db match {
