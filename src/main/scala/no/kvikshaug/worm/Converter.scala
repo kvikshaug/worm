@@ -10,7 +10,7 @@ class Attribute
 case class ForeignKey() extends Attribute // Refactor to ForeignKey when that class is removed
 case class Primitive() extends Attribute
 
-case class Table(name: String, var rows: List[Row], obj: Worm)
+case class Table(name: String, var rows: List[Row], obj: Option[Worm])
 case class Row(name: String, value: AnyRef, attribute: Attribute = Primitive())
 
 case class TableStructure(name: String, rows: List[RowStructure])
@@ -41,7 +41,7 @@ object Converter {
   def objectToTables(obj: Worm): List[Table] = {
     // Traverse all the fields of the class
     var tables = ListBuffer[Table]()
-    val thisTable = Table(obj.getClass.getSimpleName, null, obj)
+    val thisTable = Table(obj.getClass.getSimpleName, null, Some(obj))
     val rows = obj.getClass.getDeclaredFields.map { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
@@ -63,7 +63,7 @@ object Converter {
               Row(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
               Row(f.getName, thatTable(0), ForeignKey())
             )
-            tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, null)
+            tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, None)
           }
         //} else if(classOf[java.util.Collection[_]].isAssignableFrom(seqType) ||
         //          classOf[Seq[_]].isAssignableFrom(seqType)) {
@@ -75,7 +75,7 @@ object Converter {
               Row(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
               Row(f.getName, item, Primitive())
             )
-            tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, null)
+            tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, None)
           }
         }
         None
