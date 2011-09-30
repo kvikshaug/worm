@@ -46,6 +46,8 @@ object Converter {
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // It's another custom class that extends Worm
+        // We know that the table for that class will be the first
+        // in the list, since it's prepended at the end of this method
         val innerTables = objectToTables(f.get(obj).asInstanceOf[Worm])
         tables = tables ++ innerTables
         Some(Row(f.getName, innerTables(0), ForeignKey()))
