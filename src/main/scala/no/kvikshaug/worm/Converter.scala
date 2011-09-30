@@ -13,14 +13,14 @@ case class Primitive() extends Attribute
 case class Table(name: String, var rows: List[Row], obj: Option[Worm])
 case class Row(name: String, value: AnyRef, attribute: Attribute = Primitive())
 
-case class TableStructure(name: String, rows: List[RowStructure])
-case class RowStructure(name: String, typeName: String)
+case class TableStructure(name: String, columns: List[ColumnStructure])
+case class ColumnStructure(name: String, typeName: String)
 
 /** The Converter class converts data objects into a datastructure
     that is simple for our SQL class to use when executing statements.
 
     The Table and Row classes represents data to be inserted or updated,
-    and the TableStructure and RowStructure classes represent a data
+    and the TableStructure and ColumnStructure classes represent a data
     structure (without the data) for creating tables.
 
     This class does not verify that a connection to SQL has been
@@ -113,35 +113,35 @@ object Converter {
       if(classOf[Worm].isAssignableFrom(seqType)) {
         // It's a list of objects that extends Worm - create a separate table and a join table
         return TableStructure(containerName + seqType.getSimpleName + "s", List(
-          RowStructure("id", pkType),
-          RowStructure(fieldName(containerName), fkType),
-          RowStructure(f.getName, fkType))) ::
+          ColumnStructure("id", pkType),
+          ColumnStructure(fieldName(containerName), fkType),
+          ColumnStructure(f.getName, fkType))) ::
             classToStructure(Manifest.classType(seqType))
       } else {
         // Assume it's a list of primitives - create a separate table for them
         return List(TableStructure(containerName + seqType.getSimpleName + "s", List(
-          RowStructure("id", pkType),
-          RowStructure(fieldName(containerName), fkType),
-          RowStructure(fieldName(seqType.getSimpleName), columnType(commonName(seqType.getSimpleName))))))
+          ColumnStructure("id", pkType),
+          ColumnStructure(fieldName(containerName), fkType),
+          ColumnStructure(fieldName(seqType.getSimpleName), columnType(commonName(seqType.getSimpleName))))))
       }
     }
     var tables = List[TableStructure]()
-    val rows = RowStructure("id", pkType) :: classManifest[T].erasure.getDeclaredFields.map { f =>
+    val columns = ColumnStructure("id", pkType) :: classManifest[T].erasure.getDeclaredFields.map { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // Relation
         tables = tables ++ classToStructure(Manifest.classType(f.getType))
-        Some(RowStructure(f.getName, fkType))
+        Some(ColumnStructure(f.getName, fkType))
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
                 classOf[Seq[_]].isAssignableFrom(f.getType)) {
         // Sequence collection
         tables = tables ++ unwrapSeq(classManifest[T].erasure.getSimpleName, f)
         None
       } else {
-        Some(RowStructure(f.getName, columnType(commonName(f.getType.getSimpleName))))
+        Some(ColumnStructure(f.getName, columnType(commonName(f.getType.getSimpleName))))
       }
     }.flatten.toList
-    TableStructure(classManifest[T].erasure.getSimpleName, rows) :: tables
+    TableStructure(classManifest[T].erasure.getSimpleName, columns) :: tables
   }
 
   /* DB-engine specific functions */

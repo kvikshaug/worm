@@ -12,7 +12,7 @@ class SQL(val driver: String, val jdbcURL: String) {
   def create(tables: List[TableStructure]) = {
     tables foreach { table =>
       val query = String.format("create table if not exists %s (%s);",
-        table.name, commaize(table.rows.map(r => r.name + " " + r.typeName)))
+        table.name, commaize(table.columns.map(r => r.name + " " + r.typeName)))
       val statement = connection.prepareStatement(query)
       statement.execute
     }
