@@ -14,8 +14,15 @@ case class Row(name: String, value: AnyRef, attribute: Attribute = Primitive())
 case class TableStructure(name: String, rows: List[RowStructure])
 case class RowStructure(name: String, typeName: String)
 
-/* This class does not verify that a connection to SQL has been
-   performed, so do that before calling using methods here */
+/** The Converter class converts data objects into a datastructure
+    that is simple for our SQL class to use when executing statements.
+
+    The Table and Row classes represents data to be inserted or updated,
+    and the TableStructure and RowStructure classes represent a data
+    structure (without the data) for creating tables.
+
+    This class does not verify that a connection to SQL has been
+    performed, so do that before calling methods here */
 object Converter {
   var db = ""
   def setDb(db: String) = {
@@ -26,6 +33,9 @@ object Converter {
     }
   }
 
+  /** Take an object and create a representation of it using the
+      Table and Row classes which can be used to insert or update
+      that object. */
   def objectToTable(obj: Worm): Table = {
     // Traverse all the fields of the class
     val rows = obj.getClass.getDeclaredFields.map { f =>
@@ -44,6 +54,8 @@ object Converter {
     Table(obj.getClass.getSimpleName, rows, obj)
   }
 
+  /** Take a list of rows from the database, the type they belong to and create
+      objects out of the data in the rows */
   def tableToObject[T <: Worm: ClassManifest](rows: List[List[AnyRef]]): List[T] = {
     val constructor = classManifest[T].erasure.getConstructors()(0)
     val objects = rows.map { originalRow =>
@@ -57,17 +69,21 @@ object Converter {
     return objects
   }
 
+  /** Create a list of TableStructures corresponding to the given class type,
+      which can be used to create the tables for its structure */
   def classToStructure[T <: Worm: ClassManifest]: List[TableStructure] = {
     def unwrapSeq(containerName: String, f: Field): List[TableStructure] = {
       val seqType = f.getGenericType.asInstanceOf[ParameterizedType]
                      .getActualTypeArguments()(0).asInstanceOf[java.lang.Class[_]]
       if(classOf[Worm].isAssignableFrom(seqType)) {
+        // It's a list of objects that extends Worm - create a separate table and a join table
         return TableStructure(containerName + seqType.getSimpleName + "s", List(
           RowStructure("id", pkType),
           RowStructure(fieldName(containerName), fkType),
           RowStructure(f.getName, fkType))) ::
             classToStructure(Manifest.classType(seqType))
       } else {
+        // Assume it's a list of primitives - create a separate table for them
         return List(TableStructure(containerName + seqType.getSimpleName + "s", List(
           RowStructure("id", pkType),
           RowStructure(fieldName(containerName), fkType),
