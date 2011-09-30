@@ -32,11 +32,11 @@ class SQL(val driver: String, val jdbcURL: String) {
     rows
   }
 
-  def insert(table: Table): Long = {
+  def insert(tables: List[Table]): Unit = tables foreach { table =>
     // todo - sanitize table String AND all fields - SQL injection
     val inserts = table.rows.map { row =>
       row.attribute match {
-        case ForeignKey() => Row(row.name, insert(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive())
+        case ForeignKey() => Row(row.name, row.value.asInstanceOf[Table].obj.wormDbId.get.asInstanceOf[java.lang.Long], Primitive())
         case Primitive()  => row
       }
     }
@@ -51,8 +51,9 @@ class SQL(val driver: String, val jdbcURL: String) {
       throw new SQLException("The SQL driver didn't throw any exception, but it also said that no " +
         "keys were inserted!\nNot really sure how that happened, or what I (the ORM) can do about it.")
     }
-    table.obj.wormDbId = Some(key.getLong(1))
-    table.obj.wormDbId.get
+    if(table.obj != null) { // TODO make obj Option?
+      table.obj.wormDbId = Some(key.getLong(1))
+    }
   }
 
   def update(table: Table): Unit = {
