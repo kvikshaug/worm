@@ -4,11 +4,13 @@ import java.lang.reflect.Field
 import java.lang.reflect.Constructor
 import java.lang.reflect.ParameterizedType
 
+import scala.collection.mutable.ListBuffer
+
 class Attribute
 case class ForeignKey() extends Attribute // Refactor to ForeignKey when that class is removed
 case class Primitive() extends Attribute
 
-case class Table(name: String, rows: List[Row], obj: Worm)
+case class Table(name: String, var rows: List[Row], obj: Worm)
 case class Row(name: String, value: AnyRef, attribute: Attribute = Primitive())
 
 case class TableStructure(name: String, rows: List[RowStructure])
@@ -36,22 +38,55 @@ object Converter {
   /** Take an object and create a representation of it using the
       Table and Row classes which can be used to insert or update
       that object. */
-  def objectToTable(obj: Worm): Table = {
+  def objectToTables(obj: Worm): List[Table] = {
     // Traverse all the fields of the class
+    var tables = ListBuffer[Table]()
+    val thisTable = Table(obj.getClass.getSimpleName, null, obj)
     val rows = obj.getClass.getDeclaredFields.map { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // It's another custom class that extends Worm
-        Row(f.getName, objectToTable(f.get(obj).asInstanceOf[Worm]), ForeignKey())
-      //} else if() {
-        // It's a collection
-        
+        val innerTables = objectToTables(f.get(obj).asInstanceOf[Worm])
+        tables = tables ++ innerTables
+        Some(Row(f.getName, innerTables(0), ForeignKey()))
+      } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
+                classOf[Seq[_]].isAssignableFrom(f.getType)) {
+        // Sequence collection
+        val seqType = f.getGenericType.asInstanceOf[ParameterizedType]
+                       .getActualTypeArguments()(0).asInstanceOf[java.lang.Class[_]]
+        if(classOf[Worm].isAssignableFrom(seqType)) {
+          // A sequence of Worms
+          f.get(obj).asInstanceOf[List[Worm]].foreach { worm =>
+            val thatTable = objectToTables(worm)
+            tables = tables ++ thatTable
+            val rows = List[Row](
+              Row(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
+              Row(f.getName, thatTable(0), ForeignKey())
+            )
+            tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, null)
+          }
+        //} else if(classOf[java.util.Collection[_]].isAssignableFrom(seqType) ||
+        //          classOf[Seq[_]].isAssignableFrom(seqType)) {
+          // A list of lists (not yet supported)
+        } else {
+          // Something else, assume primitive
+          f.get(obj).asInstanceOf[List[AnyRef]].foreach { item =>
+            val rows = List[Row](
+              Row(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
+              Row(f.getName, item, Primitive())
+            )
+            tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, null)
+          }
+        }
+        None
       } else {
         // It's something else, assume primitive
-        Row(f.getName, f.get(obj))
+        Some(Row(f.getName, f.get(obj)))
       }
-    }.toList
-    Table(obj.getClass.getSimpleName, rows, obj)
+    }.toList.flatten
+    thisTable.rows = rows
+    tables = thisTable +: tables
+    tables.toList
   }
 
   /** Take a list of rows from the database, the type they belong to and create

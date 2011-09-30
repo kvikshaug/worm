@@ -49,7 +49,7 @@ class Worm {
   // any ideas for improvements?
   var wormDbId: Option[Long] = None
 
-  def insert(): Long = {
+  def insert(): Unit = {
     if(Worm.sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
@@ -57,8 +57,8 @@ class Worm {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         wormDbId.get + ".")
     }
-    val table = Converter.objectToTable(this)
-    Worm.sql.get.insert(table)
+    val tables = Converter.objectToTables(this)
+    //Worm.sql.get.insert(tables)
   }
 
   def update(): Unit = {
@@ -68,8 +68,8 @@ class Worm {
     if(wormDbId.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val table = Converter.objectToTable(this)
-    Worm.sql.get.update(table)
+    val table = Converter.objectToTables(this)
+    //Worm.sql.get.update(table)
   }
 
   def delete(): Unit = {
@@ -79,7 +79,7 @@ class Worm {
     if(wormDbId isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val table = Converter.objectToTable(this)
-    Worm.sql.get.delete(table)
+    val table = Converter.objectToTables(this)
+    //Worm.sql.get.delete(table)
   }
 }
