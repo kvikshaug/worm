@@ -43,7 +43,7 @@ object Converter {
     // Traverse all the fields of the class
     var tables = ListBuffer[Table]()
     val thisTable = Table(obj.getClass.getSimpleName, null, Some(obj))
-    val rows = obj.getClass.getDeclaredFields.map { f =>
+    val columns = obj.getClass.getDeclaredFields.map { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // It's another custom class that extends Worm
@@ -51,7 +51,7 @@ object Converter {
         // in the list, since it's prepended at the end of this method
         val innerTables = objectToTables(f.get(obj).asInstanceOf[Worm])
         tables = tables ++ innerTables
-        Some(Row(List(Column(f.getName, innerTables(0), ForeignKey()))))
+        Some(Column(f.getName, innerTables(0), ForeignKey()))
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
                 classOf[Seq[_]].isAssignableFrom(f.getType)) {
         // Sequence collection
@@ -84,10 +84,10 @@ object Converter {
         None
       } else {
         // It's something else, assume primitive
-        Some(Row(List(Column(f.getName, f.get(obj)))))
+        Some((Column(f.getName, f.get(obj))))
       }
     }.toList.flatten
-    thisTable.rows = rows
+    thisTable.rows = List(Row(columns))
     tables = thisTable +: tables
     tables.toList
   }
