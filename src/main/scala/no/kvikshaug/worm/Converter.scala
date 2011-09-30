@@ -11,7 +11,8 @@ case class ForeignKey() extends Attribute // Refactor to ForeignKey when that cl
 case class Primitive() extends Attribute
 
 case class Table(name: String, var rows: List[Row], obj: Option[Worm])
-case class Row(name: String, value: AnyRef, attribute: Attribute = Primitive())
+case class Row(columns: List[Column])
+case class Column(name: String, value: AnyRef, attribute: Attribute = Primitive())
 
 case class TableStructure(name: String, columns: List[ColumnStructure])
 case class ColumnStructure(name: String, typeName: String)
@@ -50,7 +51,7 @@ object Converter {
         // in the list, since it's prepended at the end of this method
         val innerTables = objectToTables(f.get(obj).asInstanceOf[Worm])
         tables = tables ++ innerTables
-        Some(Row(f.getName, innerTables(0), ForeignKey()))
+        Some(Row(List(Column(f.getName, innerTables(0), ForeignKey()))))
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
                 classOf[Seq[_]].isAssignableFrom(f.getType)) {
         // Sequence collection
@@ -58,32 +59,32 @@ object Converter {
                        .getActualTypeArguments()(0).asInstanceOf[java.lang.Class[_]]
         if(classOf[Worm].isAssignableFrom(seqType)) {
           // A sequence of Worms
-          f.get(obj).asInstanceOf[List[Worm]].foreach { worm =>
+          val rows = f.get(obj).asInstanceOf[List[Worm]].map { worm =>
             val thatTable = objectToTables(worm)
             tables = tables ++ thatTable
-            val rows = List[Row](
-              Row(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
-              Row(f.getName, thatTable(0), ForeignKey())
-            )
-            tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, None)
+            Row(List(
+              Column(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
+              Column(f.getName, thatTable(0), ForeignKey())
+            ))
           }
+          tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, None)
         //} else if(classOf[java.util.Collection[_]].isAssignableFrom(seqType) ||
         //          classOf[Seq[_]].isAssignableFrom(seqType)) {
           // A list of lists (not yet supported)
         } else {
           // Something else, assume primitive
-          f.get(obj).asInstanceOf[List[AnyRef]].foreach { item =>
-            val rows = List[Row](
-              Row(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
-              Row(f.getName, item, Primitive())
-            )
-            tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, None)
+          val rows = f.get(obj).asInstanceOf[List[AnyRef]].map { item =>
+            Row(List(
+              Column(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
+              Column(f.getName, item, Primitive())
+            ))
           }
+          tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, None)
         }
         None
       } else {
         // It's something else, assume primitive
-        Some(Row(f.getName, f.get(obj)))
+        Some(Row(List(Column(f.getName, f.get(obj)))))
       }
     }.toList.flatten
     thisTable.rows = rows

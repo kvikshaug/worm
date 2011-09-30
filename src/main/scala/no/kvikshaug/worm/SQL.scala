@@ -34,25 +34,27 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   def insert(tables: List[Table]): Unit = tables foreach { table =>
     // todo - sanitize table String AND all fields - SQL injection
-    val inserts = table.rows.map { row =>
-      row.attribute match {
-        case ForeignKey() => Row(row.name, row.value.asInstanceOf[Table].obj.get.wormDbId.get.asInstanceOf[java.lang.Long], Primitive())
-        case Primitive()  => row
+    table.rows foreach { row =>
+      val inserts = row.columns.map { column =>
+        column.attribute match {
+          case ForeignKey() => Column(column.name, column.value.asInstanceOf[Table].obj.get.wormDbId.get.asInstanceOf[java.lang.Long], Primitive())
+          case Primitive()  => column
+        }
       }
-    }
-    val query = String.format("insert into '%s' (%s) values (%s);",
-        table.name,
-        commaize(inserts.map("'" + _.name + "'")),
-        commaize(inserts.map("'" + _.value + "'")))
-    val statement = connection.prepareStatement(query)
-    statement.execute
-    val key = statement.getGeneratedKeys
-    if(!key.next) {
-      throw new SQLException("The SQL driver didn't throw any exception, but it also said that no " +
-        "keys were inserted!\nNot really sure how that happened, or what I (the ORM) can do about it.")
-    }
-    if(table.obj.isDefined) {
-      table.obj.get.wormDbId = Some(key.getLong(1))
+      val query = String.format("insert into '%s' (%s) values (%s);",
+          table.name,
+          commaize(inserts.map("'" + _.name + "'")),
+          commaize(inserts.map("'" + _.value + "'")))
+      val statement = connection.prepareStatement(query)
+      statement.execute
+      val key = statement.getGeneratedKeys
+      if(!key.next) {
+        throw new SQLException("The SQL driver didn't throw any exception, but it also said that no " +
+          "keys were inserted!\nNot really sure how that happened, or what I (the ORM) can do about it.")
+      }
+      if(table.obj.isDefined) {
+        table.obj.get.wormDbId = Some(key.getLong(1))
+      }
     }
   }
 
