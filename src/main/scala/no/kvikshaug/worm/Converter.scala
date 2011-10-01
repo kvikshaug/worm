@@ -41,6 +41,7 @@ object Converter {
       that object. */
   def objectToTables(obj: Worm): List[Table] = {
     // Traverse all the fields of the class
+    var prependTables = ListBuffer[Table]() // To make sure inserts are unrwapped in the right order
     var tables = ListBuffer[Table]()
     val thisTable = Table(obj.getClass.getSimpleName, null, Some(obj))
     val columns = obj.getClass.getDeclaredFields.map { f =>
@@ -50,7 +51,7 @@ object Converter {
         // We know that the table for that class will be the first
         // in the list, since it's prepended at the end of this method
         val innerTables = objectToTables(f.get(obj).asInstanceOf[Worm])
-        tables = tables ++ innerTables
+        prependTables = prependTables ++ innerTables
         Some(Column(f.getName, innerTables(0), ForeignKey()))
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
                 classOf[Seq[_]].isAssignableFrom(f.getType)) {
@@ -88,7 +89,7 @@ object Converter {
       }
     }.toList.flatten
     thisTable.rows = List(Row(columns))
-    tables = thisTable +: tables
+    tables = prependTables ++ (thisTable +: tables)
     tables.toList
   }
 
