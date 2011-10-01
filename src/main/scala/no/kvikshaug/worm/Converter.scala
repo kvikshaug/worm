@@ -12,8 +12,8 @@ case class Column(name: String, value: Any, depends: Option[Dependency])
 
 class Dependency(val parent: Worm)
 case class SingleWormDependency(override val parent: Worm, child: Worm) extends Dependency(parent)
-case class WormDependency(override val parent: Worm, child: Seq[Worm]) extends Dependency(parent)
-case class PrimitiveDependency(override val parent: Worm, child: Seq[AnyRef]) extends Dependency(parent)
+case class WormDependency(override val parent: Worm, children: Seq[Worm], tableName: String, parentName: String, childName: String) extends Dependency(parent)
+case class PrimitiveDependency(override val parent: Worm, children: Seq[AnyRef], tableName: String, parentName: String, childName: String) extends Dependency(parent)
 
 case class TableStructure(name: String, columns: List[ColumnStructure])
 case class ColumnStructure(name: String, typeName: String)
@@ -62,7 +62,8 @@ object Converter {
         if(classOf[Worm].isAssignableFrom(seqType)) {
           // A sequence of Worms. Make tables for each Worm
           val list = f.get(obj).asInstanceOf[Seq[Worm]] // i suspect this won't work with java.util.List
-          val dep = WormDependency(obj, list)
+          val dep = WormDependency(obj, list, obj.getClass.getSimpleName + seqType.getSimpleName + "s",
+            fieldName(obj.getClass.getSimpleName), f.getName)
           theseDeps += dep
           list.foreach { worm =>
             val ret = objectToTables(worm)
@@ -71,7 +72,7 @@ object Converter {
           }
         } else {
           // A sequence of assumed primitives
-          otherDeps += PrimitiveDependency(obj, f.get(obj).asInstanceOf[Seq[AnyRef]])
+          otherDeps += PrimitiveDependency(obj, f.get(obj).asInstanceOf[Seq[AnyRef]], obj.getClass.getSimpleName + seqType.getSimpleName + "s", fieldName(obj.getClass.getSimpleName), f.getName)
         }
         // No column needed for sequences
         None
@@ -82,7 +83,7 @@ object Converter {
     }.toList.flatten
     // If this object has a single dependency, prepend a referencing column
     if(dep.isDefined) {
-      columns = Column(fieldNameSingular(dep.get.parent.getClass.getSimpleName), null, dep) :: columns
+      columns = Column(fieldName(dep.get.parent.getClass.getSimpleName), null, dep) :: columns
     }
     tables = Table(obj.getClass.getSimpleName, List(Row(columns)), theseDeps.toList, obj) +: tables
     return (tables.toList, (theseDeps.toList ++ otherDeps.toList))
@@ -113,15 +114,15 @@ object Converter {
         // It's a list of objects that extends Worm - create a separate table and a join table
         return TableStructure(containerName + seqType.getSimpleName + "s", List(
           ColumnStructure("id", pkType),
-          ColumnStructure(fieldNamePlural(containerName), fkType),
+          ColumnStructure(fieldName(containerName), fkType),
           ColumnStructure(f.getName, fkType))) ::
             classToStructure()(Manifest.classType(seqType))
       } else {
         // Assume it's a list of primitives - create a separate table for them
         return List(TableStructure(containerName + seqType.getSimpleName + "s", List(
           ColumnStructure("id", pkType),
-          ColumnStructure(fieldNamePlural(containerName), fkType),
-          ColumnStructure(fieldNamePlural(seqType.getSimpleName), columnType(commonName(seqType.getSimpleName))))))
+          ColumnStructure(fieldName(containerName), fkType),
+          ColumnStructure(fieldName(seqType.getSimpleName), columnType(commonName(seqType.getSimpleName))))))
       }
     }
     var tables = List[TableStructure]()
@@ -129,7 +130,7 @@ object Converter {
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // Relation
-        val rel = List(ColumnStructure(fieldNameSingular(classManifest[T].erasure.getSimpleName), fkType))
+        val rel = List(ColumnStructure(fieldName(classManifest[T].erasure.getSimpleName), fkType))
         tables = tables ++ classToStructure(rel)(Manifest.classType(f.getType))
         None
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
@@ -146,8 +147,7 @@ object Converter {
 
   /* DB-engine specific functions */
 
-  private def fieldNamePlural(name: String) = fieldNameSingular(name) + 's'
-  private def fieldNameSingular(name: String) = name.head.toLower + name.tail
+  private def fieldName(name: String) = name.head.toLower + name.tail + 's'
 
   private def commonName(name: String) =
     name.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase
