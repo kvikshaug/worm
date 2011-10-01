@@ -20,7 +20,6 @@ class SQL(val driver: String, val jdbcURL: String) {
   }
 
   def select[T](table: String, sql: String): List[List[AnyRef]] = {
-    // todo - sanitize table String AND whereClause String - SQL injection
     val statement = connection.prepareStatement(String.format("select * from '%s' %s;", table, sql))
     statement.execute
     val resultset = statement.getResultSet()
