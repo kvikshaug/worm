@@ -73,22 +73,6 @@ class SQL(val driver: String, val jdbcURL: String) {
     ids.toList
   }
 
-  private def performInsert(table: String, names: Seq[Any], values: Seq[Any]): Long = {
-    val query = String.format("insert into '%s' (%s) values (%s);",
-      table,
-      commaize("'id'" :: names.map("'" + _ + "'").toList),
-      commaize("NULL" :: values.map("'" + _ + "'").toList)
-    )
-    val statement = connection.prepareStatement(query)
-    statement.execute
-    val key = statement.getGeneratedKeys
-    if(!key.next) {
-      throw new SQLException("The SQL driver didn't throw any exception, but it also said that no " +
-        "keys were inserted!\nNot really sure how that happened, or what I (the ORM) can do about it.")
-    }
-    key.getLong(1)
-  }
-
   def update(ids: List[ID], tables: List[Table], deps: List[Dependency]): List[ID] = {
     // Just delete everything, and reinsert it
     ids.foreach(id => performDelete(id.tableName, id.id))
@@ -110,6 +94,22 @@ class SQL(val driver: String, val jdbcURL: String) {
       table.obj.wormDbId.get.toString)
     connection.prepareStatement(query).execute
     table.obj.wormDbId = None
+  }
+
+  private def performInsert(table: String, names: Seq[Any], values: Seq[Any]): Long = {
+    val query = String.format("insert into '%s' (%s) values (%s);",
+      table,
+      commaize("'id'" :: names.map("'" + _ + "'").toList),
+      commaize("NULL" :: values.map("'" + _ + "'").toList)
+    )
+    val statement = connection.prepareStatement(query)
+    statement.execute
+    val key = statement.getGeneratedKeys
+    if(!key.next) {
+      throw new SQLException("The SQL driver didn't throw any exception, but it also said that no " +
+        "keys were inserted!\nNot really sure how that happened, or what I (the ORM) can do about it.")
+    }
+    key.getLong(1)
   }
 
   private def performDelete(tableName: String, id: Long) = connection.prepareStatement(String.format(
