@@ -89,29 +89,13 @@ class SQL(val driver: String, val jdbcURL: String) {
     key.getLong(1)
   }
 
-  def update(table: Table): Unit = {
-    val rows = table.rows.map { row =>
-      row.attribute match {
-        case ForeignKey() =>
-          // Check if the object has an ID
-          if(row.value.asInstanceOf[Table].obj.wormDbId.isDefined) {
-            update(row.value.asInstanceOf[Table])
-            None
-          } else {
-            Some(Row(row.name, insert(row.value.asInstanceOf[Table]).asInstanceOf[java.lang.Long], Primitive()))
-          }
-        case Primitive() => Some(row)
-      }
-    }.flatten
-    val sb = new StringBuilder
-    for(i <- 0 until rows.size) {
-      sb.append("'").append(rows(i).name).append("'='").append(rows(i).value).append("'")
-      if(i != rows.size - 1) {
-        sb.append(",")
-      }
+  def update(ids: List[ID], tables: List[Table], deps: List[Dependency]): List[ID] = {
+    // Just delete everything, and reinsert it
+    ids foreach { id =>
+      val query = String.format("delete from '%s' where id='%s';", id.tableName, id.id.toString)
+      connection.prepareStatement(query).execute
     }
-    val query = String.format("update '%s' set %s where id='%s';", table.name, sb.toString, table.obj.wormDbId.get.toString)
-    connection.prepareStatement(query).execute
+    insert(tables, deps)
   }
 
   def delete(table: Table): Unit = {
