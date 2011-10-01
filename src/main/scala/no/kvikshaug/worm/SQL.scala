@@ -79,21 +79,33 @@ class SQL(val driver: String, val jdbcURL: String) {
     insert(tables, deps)
   }
 
-  def delete(table: Table): Unit = {
-    table.rows.foreach { row =>
-      row.attribute match {
-        case ForeignKey() =>
-          // If the object has an ID, delete that too
-          if(row.value.asInstanceOf[Table].obj.wormDbId.isDefined) {
-            delete(row.value.asInstanceOf[Table])
-          }
-        case _ =>
+  def delete(tables: List[Table], deps: List[Dependency]): Unit = {
+    // Delete all the dependencies
+    deps foreach { dep => dep match {
+      case SingleWormDependency(_, _) =>
+      case WormDependency(parent, children, tableName, parentName, childName) =>
+        if(parent.wormDbId.isDefined) {
+          // It may not be defined if the user updated the field without calling update().
+          // (Which they shouldn't.)
+          performDelete(tableName, parent.wormDbId.get, parentName)
+        }
+      case PrimitiveDependency(parent, children, tableName, parentName, childName) =>
+        if(parent.wormDbId.isDefined) {
+          // It may not be defined if the user updated the field without calling update().
+          // (Which they shouldn't.)
+          performDelete(tableName, parent.wormDbId.get, parentName)
+        }
       }
     }
-    val query = String.format("delete from '%s' where id='%s';", table.name,
-      table.obj.wormDbId.get.toString)
-    connection.prepareStatement(query).execute
-    table.obj.wormDbId = None
+    // Delete all the tables
+    tables foreach { table =>
+      if(table.obj.wormDbId.isDefined) {
+        // It may not be defined if the user updated the field without calling update().
+        // (Which they shouldn't.)
+        performDelete(table.name, table.obj.wormDbId.get)
+        table.obj.wormDbId = None
+      }
+    }
   }
 
   private def performInsert(table: String, names: Seq[Any], values: Seq[Any]): Long = {
@@ -112,9 +124,10 @@ class SQL(val driver: String, val jdbcURL: String) {
     key.getLong(1)
   }
 
-  private def performDelete(tableName: String, id: Long) = connection.prepareStatement(String.format(
-    "delete from '%s' where id='%s';", tableName, id.toString
-  )).execute
+  private def performDelete(tableName: String, id: Long, columnName: String = "id") = {
+    val query = String.format("delete from '%s' where %s='%s';", tableName, columnName, id.toString)
+    connection.prepareStatement(query).execute
+  }
 
   private def commaize(list: List[_ <: Any]): String = list match {
     case List()  => ""

@@ -84,7 +84,7 @@ class Worm {
     if(wormDbId isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val table = Converter.objectToTables(this)
-    //Worm.sql.get.delete(table)
+    val (tables, deps) = Converter.objectToTables(this)
+    Worm.sql.get.delete(tables, deps)
   }
 }
