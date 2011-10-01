@@ -22,10 +22,7 @@ case class ColumnStructure(name: String, typeName: String)
 
     The Table and Row classes represents data to be inserted or updated,
     and the TableStructure and ColumnStructure classes represent a data
-    structure (without the data) for creating tables.
-
-    This class does not verify that a connection to SQL has been
-    performed, so do that before calling methods here */
+    structure (without the data) for creating tables. */
 object Converter {
   var db = ""
   def setDb(db: String) = {
