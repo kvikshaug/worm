@@ -6,13 +6,14 @@ import java.lang.reflect.ParameterizedType
 
 import scala.collection.mutable.ListBuffer
 
-class Attribute
-case class ForeignKey() extends Attribute // Refactor to ForeignKey when that class is removed
-case class Primitive() extends Attribute
-
-case class Table(name: String, var rows: List[Row], obj: Option[Worm])
+case class Table(name: String, rows: List[Row], hasDeps: List[Dependency], obj: Worm)
 case class Row(columns: List[Column])
-case class Column(name: String, value: AnyRef, attribute: Attribute = Primitive())
+case class Column(name: String, value: Any, depends: Option[Dependency])
+
+class Dependency(val parent: Worm)
+case class SingleWormDependency(override val parent: Worm, child: Worm) extends Dependency(parent)
+case class WormDependency(override val parent: Worm, child: Seq[Worm]) extends Dependency(parent)
+case class PrimitiveDependency(override val parent: Worm, child: Seq[AnyRef]) extends Dependency(parent)
 
 case class TableStructure(name: String, columns: List[ColumnStructure])
 case class ColumnStructure(name: String, typeName: String)
@@ -36,58 +37,55 @@ object Converter {
   /** Take an object and create a representation of it using the
       Table and Row classes which can be used to insert or update
       that object. */
-  def objectToTables(obj: Worm): List[Table] = {
-    // Traverse all the fields of the class
-    var prependTables = ListBuffer[Table]() // To make sure inserts are unrwapped in the right order
+  def objectToTables(obj: Worm, dep: Option[SingleWormDependency] = None): Tuple2[List[Table], List[Dependency]] = {
+    // Traverse all its fields, and figure out what columns to save
+    var theseDeps = ListBuffer[Dependency]() // dependencies for the current object
+    var otherDeps = ListBuffer[Dependency]() // all other dependencies
     var tables = ListBuffer[Table]()
-    val thisTable = Table(obj.getClass.getSimpleName, null, Some(obj))
-    val columns = obj.getClass.getDeclaredFields.map { f =>
+    var columns = obj.getClass.getDeclaredFields.map { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
-        // It's another custom class that extends Worm
-        // We know that the table for that class will be the first
-        // in the list, since it's prepended at the end of this method
-        val innerTables = objectToTables(f.get(obj).asInstanceOf[Worm])
-        prependTables = prependTables ++ innerTables
-        Some(Column(f.getName, innerTables(0), ForeignKey()))
+        // This field is another Worm. It will depend on this one
+        val that = f.get(obj).asInstanceOf[Worm]
+        val dep = SingleWormDependency(obj, that)
+        theseDeps += dep
+        val ret = objectToTables(that, Some(dep))
+        tables = tables ++ ret._1
+        otherDeps = otherDeps ++ ret._2
+        // No column, the dependency column will be in the remote object
+        None
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
                 classOf[Seq[_]].isAssignableFrom(f.getType)) {
-        // Sequence collection
+        // This field is a sequence/collection
         val seqType = f.getGenericType.asInstanceOf[ParameterizedType]
                        .getActualTypeArguments()(0).asInstanceOf[java.lang.Class[_]]
         if(classOf[Worm].isAssignableFrom(seqType)) {
-          // A sequence of Worms
-          val rows = f.get(obj).asInstanceOf[List[Worm]].map { worm =>
-            val thatTable = objectToTables(worm)
-            tables = tables ++ thatTable
-            Row(List(
-              Column(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
-              Column(f.getName, thatTable(0), ForeignKey())
-            ))
+          // A sequence of Worms. Make tables for each Worm
+          val list = f.get(obj).asInstanceOf[Seq[Worm]] // i suspect this won't work with java.util.List
+          val dep = WormDependency(obj, list)
+          theseDeps += dep
+          list.foreach { worm =>
+            val ret = objectToTables(worm)
+            tables = tables ++ ret._1
+            otherDeps = otherDeps ++ ret._2
           }
-          tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, None)
-        //} else if(classOf[java.util.Collection[_]].isAssignableFrom(seqType) ||
-        //          classOf[Seq[_]].isAssignableFrom(seqType)) {
-          // A list of lists (not yet supported)
         } else {
-          // Something else, assume primitive
-          val rows = f.get(obj).asInstanceOf[List[AnyRef]].map { item =>
-            Row(List(
-              Column(fieldName(obj.getClass.getSimpleName), thisTable, ForeignKey()),
-              Column(f.getName, item, Primitive())
-            ))
-          }
-          tables = tables += Table(obj.getClass.getSimpleName + seqType.getSimpleName + "s", rows, None)
+          // A sequence of assumed primitives
+          otherDeps += PrimitiveDependency(obj, f.get(obj).asInstanceOf[Seq[AnyRef]])
         }
+        // No column needed for sequences
         None
       } else {
-        // It's something else, assume primitive
-        Some((Column(f.getName, f.get(obj))))
+        // Assume this field is a primitive, create a column of it
+        Some(Column(f.getName, f.get(obj), None))
       }
     }.toList.flatten
-    thisTable.rows = List(Row(columns))
-    tables = prependTables ++ (thisTable +: tables)
-    tables.toList
+    // If this object has a single dependency, prepend a referencing column
+    if(dep.isDefined) {
+      columns = Column(fieldNameSingular(dep.get.parent.getClass.getSimpleName), null, dep) :: columns
+    }
+    tables = Table(obj.getClass.getSimpleName, List(Row(columns)), theseDeps.toList, obj) +: tables
+    return (tables.toList, (theseDeps.toList ++ otherDeps.toList))
   }
 
   /** Take a list of rows from the database, the type they belong to and create
@@ -107,7 +105,7 @@ object Converter {
 
   /** Create a list of TableStructures corresponding to the given class type,
       which can be used to create the tables for its structure */
-  def classToStructure[T <: Worm: ClassManifest]: List[TableStructure] = {
+  def classToStructure[T <: Worm: ClassManifest](rel: List[ColumnStructure] = List()): List[TableStructure] = {
     def unwrapSeq(containerName: String, f: Field): List[TableStructure] = {
       val seqType = f.getGenericType.asInstanceOf[ParameterizedType]
                      .getActualTypeArguments()(0).asInstanceOf[java.lang.Class[_]]
@@ -115,24 +113,25 @@ object Converter {
         // It's a list of objects that extends Worm - create a separate table and a join table
         return TableStructure(containerName + seqType.getSimpleName + "s", List(
           ColumnStructure("id", pkType),
-          ColumnStructure(fieldName(containerName), fkType),
+          ColumnStructure(fieldNamePlural(containerName), fkType),
           ColumnStructure(f.getName, fkType))) ::
-            classToStructure(Manifest.classType(seqType))
+            classToStructure()(Manifest.classType(seqType))
       } else {
         // Assume it's a list of primitives - create a separate table for them
         return List(TableStructure(containerName + seqType.getSimpleName + "s", List(
           ColumnStructure("id", pkType),
-          ColumnStructure(fieldName(containerName), fkType),
-          ColumnStructure(fieldName(seqType.getSimpleName), columnType(commonName(seqType.getSimpleName))))))
+          ColumnStructure(fieldNamePlural(containerName), fkType),
+          ColumnStructure(fieldNamePlural(seqType.getSimpleName), columnType(commonName(seqType.getSimpleName))))))
       }
     }
     var tables = List[TableStructure]()
-    val columns = ColumnStructure("id", pkType) :: classManifest[T].erasure.getDeclaredFields.map { f =>
+    val columns = ColumnStructure("id", pkType) :: rel ++ classManifest[T].erasure.getDeclaredFields.map { f =>
       f.setAccessible(true)
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // Relation
-        tables = tables ++ classToStructure(Manifest.classType(f.getType))
-        Some(ColumnStructure(f.getName, fkType))
+        val rel = List(ColumnStructure(fieldNameSingular(classManifest[T].erasure.getSimpleName), fkType))
+        tables = tables ++ classToStructure(rel)(Manifest.classType(f.getType))
+        None
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
                 classOf[Seq[_]].isAssignableFrom(f.getType)) {
         // Sequence collection
@@ -147,7 +146,8 @@ object Converter {
 
   /* DB-engine specific functions */
 
-  private def fieldName(name: String) = name.head.toLower + name.tail + 's'
+  private def fieldNamePlural(name: String) = fieldNameSingular(name) + 's'
+  private def fieldNameSingular(name: String) = name.head.toLower + name.tail
 
   private def commonName(name: String) =
     name.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase

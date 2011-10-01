@@ -19,7 +19,7 @@ object Worm {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val structure = Converter.classToStructure[T]
+    val structure = Converter.classToStructure[T]()
     sql.get.create(structure)
   }
 
