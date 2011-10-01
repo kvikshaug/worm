@@ -32,36 +32,55 @@ class SQL(val driver: String, val jdbcURL: String) {
     rows
   }
 
-  def insert(tables: List[Table]): Unit = tables foreach { table =>
-    // todo - sanitize table String AND all fields - SQL injection
-    table.rows foreach { row =>
-      val inserts = row.columns.map { column =>
-        column.attribute match {
-          case ForeignKey() => Column(column.name, column.value.asInstanceOf[Table].obj.get.wormDbId.get.asInstanceOf[java.lang.Long], Primitive())
-          case Primitive()  => column
+  def insert(tables: List[Table], deps: List[Dependency]): Unit = {
+    tables foreach { table =>
+      // For each column dependency, replace the value with the parent ID
+      table.rows foreach { row =>
+        val columns = row.columns.map { column =>
+          if(column.depends.isDefined) {
+            Column(column.name, column.depends.get.parent.wormDbId.get, None)
+          } else {
+            column
+          }
         }
-      }
-      val query = if(inserts.isEmpty) {
-        // Can be empty e.g. if the class contains only lists
-        String.format("insert into '%s' (id) values (NULL);",
-          table.name)
-      } else {
-        String.format("insert into '%s' (%s) values (%s);",
-          table.name,
-          commaize(inserts.map("'" + _.name + "'")),
-          commaize(inserts.map("'" + _.value + "'")))
-      }
-      val statement = connection.prepareStatement(query)
-      statement.execute
-      val key = statement.getGeneratedKeys
-      if(!key.next) {
-        throw new SQLException("The SQL driver didn't throw any exception, but it also said that no " +
-          "keys were inserted!\nNot really sure how that happened, or what I (the ORM) can do about it.")
-      }
-      if(table.obj.isDefined) {
-        table.obj.get.wormDbId = Some(key.getLong(1))
+        val key = performInsert(table.name, columns.map(_.name), columns.map(_.value))
+        table.obj.wormDbId = Some(key)
       }
     }
+
+    // After all tables are inserted, IDs will be filled out, so insert dependency data
+    deps foreach { dep => dep match {
+      case SingleWormDependency(_, _) =>
+      case WormDependency(parent, children, tableName, parentName, childName) =>
+        children foreach { child =>
+          performInsert(tableName,
+            List(parentName, childName),
+            List(parent.wormDbId.get, child.wormDbId.get))
+        }
+      case PrimitiveDependency(parent, children, tableName, parentName, childName) =>
+        children foreach { child =>
+          performInsert(tableName,
+            List(parentName, childName),
+            List(parent.wormDbId.get, child))
+        }
+      }
+    }
+  }
+
+  private def performInsert(table: String, names: Seq[Any], values: Seq[Any]): Long = {
+    val query = String.format("insert into '%s' (%s) values (%s);",
+      table,
+      commaize("'id'" :: names.map("'" + _ + "'").toList),
+      commaize("NULL" :: values.map("'" + _ + "'").toList)
+    )
+    val statement = connection.prepareStatement(query)
+    statement.execute
+    val key = statement.getGeneratedKeys
+    if(!key.next) {
+      throw new SQLException("The SQL driver didn't throw any exception, but it also said that no " +
+        "keys were inserted!\nNot really sure how that happened, or what I (the ORM) can do about it.")
+    }
+    key.getLong(1)
   }
 
   def update(table: Table): Unit = {

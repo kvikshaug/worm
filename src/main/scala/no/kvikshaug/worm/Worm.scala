@@ -58,7 +58,7 @@ class Worm {
         wormDbId.get + ".")
     }
     val tables = Converter.objectToTables(this)
-    Worm.sql.get.insert(tables)
+    Worm.sql.get.insert(tables._1, tables._2)
   }
 
   def update(): Unit = {
