@@ -91,10 +91,7 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   def update(ids: List[ID], tables: List[Table], deps: List[Dependency]): List[ID] = {
     // Just delete everything, and reinsert it
-    ids foreach { id =>
-      val query = String.format("delete from '%s' where id='%s';", id.tableName, id.id.toString)
-      connection.prepareStatement(query).execute
-    }
+    ids.foreach(id => performDelete(id.tableName, id.id))
     insert(tables, deps)
   }
 
@@ -114,6 +111,10 @@ class SQL(val driver: String, val jdbcURL: String) {
     connection.prepareStatement(query).execute
     table.obj.wormDbId = None
   }
+
+  private def performDelete(tableName: String, id: Long) = connection.prepareStatement(String.format(
+    "delete from '%s' where id='%s';", tableName, id.toString
+  )).execute
 
   private def commaize(list: List[_ <: Any]): String = list match {
     case List()  => ""
