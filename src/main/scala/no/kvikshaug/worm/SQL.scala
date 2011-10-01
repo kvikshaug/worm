@@ -41,10 +41,16 @@ class SQL(val driver: String, val jdbcURL: String) {
           case Primitive()  => column
         }
       }
-      val query = String.format("insert into '%s' (%s) values (%s);",
+      val query = if(inserts.isEmpty) {
+        // Can be empty e.g. if the class contains only lists
+        String.format("insert into '%s' (id) values (NULL);",
+          table.name)
+      } else {
+        String.format("insert into '%s' (%s) values (%s);",
           table.name,
           commaize(inserts.map("'" + _.name + "'")),
           commaize(inserts.map("'" + _.value + "'")))
+      }
       val statement = connection.prepareStatement(query)
       statement.execute
       val key = statement.getGeneratedKeys
