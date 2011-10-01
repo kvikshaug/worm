@@ -1,6 +1,7 @@
 package no.kvikshaug.worm
 
 import java.sql._
+import scala.collection.mutable.ListBuffer
 
 class SQL(val driver: String, val jdbcURL: String) {
 
@@ -32,7 +33,8 @@ class SQL(val driver: String, val jdbcURL: String) {
     rows
   }
 
-  def insert(tables: List[Table], deps: List[Dependency]): Unit = {
+  def insert(tables: List[Table], deps: List[Dependency]): List[ID] = {
+    val ids = ListBuffer[ID]()
     tables foreach { table =>
       // For each column dependency, replace the value with the parent ID
       table.rows foreach { row =>
@@ -44,6 +46,7 @@ class SQL(val driver: String, val jdbcURL: String) {
           }
         }
         val key = performInsert(table.name, columns.map(_.name), columns.map(_.value))
+        ids += ID(table.name, key)
         table.obj.wormDbId = Some(key)
       }
     }
@@ -53,18 +56,21 @@ class SQL(val driver: String, val jdbcURL: String) {
       case SingleWormDependency(_, _) =>
       case WormDependency(parent, children, tableName, parentName, childName) =>
         children foreach { child =>
-          performInsert(tableName,
+          val key = performInsert(tableName,
             List(parentName, childName),
             List(parent.wormDbId.get, child.wormDbId.get))
+          ids += ID(tableName, key)
         }
       case PrimitiveDependency(parent, children, tableName, parentName, childName) =>
         children foreach { child =>
-          performInsert(tableName,
+          val key = performInsert(tableName,
             List(parentName, childName),
             List(parent.wormDbId.get, child))
+          ids += ID(tableName, key)
         }
       }
     }
+    ids.toList
   }
 
   private def performInsert(table: String, names: Seq[Any], values: Seq[Any]): Long = {

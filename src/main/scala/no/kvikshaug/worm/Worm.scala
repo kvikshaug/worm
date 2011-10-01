@@ -5,6 +5,8 @@ import java.sql.SQLException
 
 import scala.collection.JavaConverters._
 
+case class ID(tableName: String, id: Long)
+
 object Worm {
   var sql: Option[SQL] = None
   def connect(db: String, driver: String, jdbcURL: String) {
@@ -48,6 +50,7 @@ class Worm {
   // accessible. hence, it can clash with names from the subclass namespace. :(
   // any ideas for improvements?
   var wormDbId: Option[Long] = None
+  var wormDbIds: Option[List[ID]] = None
 
   def insert(): Unit = {
     if(Worm.sql isEmpty) {
@@ -57,8 +60,9 @@ class Worm {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         wormDbId.get + ".")
     }
-    val tables = Converter.objectToTables(this)
-    Worm.sql.get.insert(tables._1, tables._2)
+    val (tables, deps) = Converter.objectToTables(this)
+    val ids = Worm.sql.get.insert(tables, deps)
+    wormDbIds = Some(ids)
   }
 
   def update(): Unit = {
