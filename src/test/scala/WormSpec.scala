@@ -49,8 +49,8 @@ class WormSpec extends Spec with ShouldMatchers {
         }
       }
 
-      it("insert a new Foo and get its inserted ID") {
-        assert(foo.insert.isInstanceOf[Long])
+      it("insert a new Foo") {
+        foo.insert
       }
 
       it("not insert an already inserted Foo or its Bar") {
