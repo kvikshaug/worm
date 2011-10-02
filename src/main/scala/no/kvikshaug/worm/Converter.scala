@@ -122,7 +122,7 @@ object Converter {
         return List(TableStructure(containerName + seqType.getSimpleName + "s", List(
           ColumnStructure("id", pkType),
           ColumnStructure(fieldName(containerName), fkType),
-          ColumnStructure(fieldName(seqType.getSimpleName), columnType(commonName(seqType.getSimpleName))))))
+          ColumnStructure(f.getName, columnType(commonName(seqType.getSimpleName))))))
       }
     }
     var tables = List[TableStructure]()
