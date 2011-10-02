@@ -1,10 +1,12 @@
 package no.kvikshaug.worm
 
+import java.util.Collection
 import java.lang.reflect.Field
 import java.lang.reflect.Constructor
 import java.lang.reflect.ParameterizedType
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.JavaConverters._
 
 case class Table(name: String, rows: List[Row], obj: Worm)
 case class Row(columns: List[Column])
@@ -12,8 +14,8 @@ case class Column(name: String, value: Any, depends: Option[Dependency])
 
 class Dependency(val parent: Worm, val tableName: String, val parentName: String, val childName: String)
 case class SingleWormDependency(override val parent: Worm, val child: Worm, override val tableName: String, override val parentName: String, override val childName: String) extends Dependency(parent, tableName, parentName, childName)
-case class WormDependency(override val parent: Worm, children: Seq[Worm], override val tableName: String, override val parentName: String, override val childName: String) extends Dependency(parent, tableName, parentName, childName)
-case class PrimitiveDependency(override val parent: Worm, children: Seq[AnyRef], override val tableName: String, override val parentName: String, override val childName: String) extends Dependency(parent, tableName, parentName, childName)
+case class WormDependency(override val parent: Worm, children: Iterable[Worm], override val tableName: String, override val parentName: String, override val childName: String) extends Dependency(parent, tableName, parentName, childName)
+case class PrimitiveDependency(override val parent: Worm, children: Iterable[AnyRef], override val tableName: String, override val parentName: String, override val childName: String) extends Dependency(parent, tableName, parentName, childName)
 
 case class TableStructure(name: String, columns: List[ColumnStructure])
 case class ColumnStructure(name: String, typeName: String)
@@ -54,13 +56,23 @@ object Converter {
         // No column, the dependency column will be in a separate table
         None
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
-                classOf[Seq[_]].isAssignableFrom(f.getType)) {
+                classOf[Seq[_]].isAssignableFrom(f.getType) ||
+                classOf[Set[_]].isAssignableFrom(f.getType)) {
         // This field is a sequence/collection
         val seqType = f.getGenericType.asInstanceOf[ParameterizedType]
                        .getActualTypeArguments()(0).asInstanceOf[java.lang.Class[_]]
         if(classOf[Worm].isAssignableFrom(seqType)) {
-          // A sequence of Worms. Make tables for each Worm
-          val list = f.get(obj).asInstanceOf[Seq[Worm]] // i suspect this won't work with java.util.List
+          // A sequence of Worms. Make tables for each Worm, based on the collection type
+          val collectionType = f.getGenericType.asInstanceOf[ParameterizedType]
+                                .getRawType.asInstanceOf[java.lang.Class[_]]
+          val list = if(classOf[Collection[_]].isAssignableFrom(collectionType)) {
+            f.get(obj).asInstanceOf[Collection[Worm]].asScala
+          } else if(classOf[Iterable[_]].isAssignableFrom(collectionType)) {
+            f.get(obj).asInstanceOf[Iterable[Worm]]
+          } else {
+            throw new UnsupportedTypeException("I don't know how to create a " +
+              "generic collection of type '" + f.getType + "'.")
+          }
           deps += WormDependency(obj, list, obj.getClass.getSimpleName + seqType.getSimpleName + "s",
             fieldName(obj.getClass.getSimpleName), f.getName)
           list.foreach { worm =>
@@ -70,7 +82,7 @@ object Converter {
           }
         } else {
           // A sequence of assumed primitives
-          deps += PrimitiveDependency(obj, f.get(obj).asInstanceOf[Seq[AnyRef]], obj.getClass.getSimpleName + seqType.getSimpleName + "s", fieldName(obj.getClass.getSimpleName), f.getName)
+          deps += PrimitiveDependency(obj, f.get(obj).asInstanceOf[Iterable[AnyRef]], obj.getClass.getSimpleName + seqType.getSimpleName + "s", fieldName(obj.getClass.getSimpleName), f.getName)
         }
         // No column needed for sequences
         None
@@ -125,15 +137,27 @@ object Converter {
               "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'" +
               "order by `order` desc")
             if(ids.isEmpty) {
-              List()
+              Iterable()
             } else {
               // We have the order in the ids list, but we can't select the right order based on it.
               // For that reason, do one select query for each item in the right order.
               // This is probably very much slower than being able to select all items in one statement.
-              ids.map { id =>
+              val objs = ids.map { id =>
                 val row = Worm.sql.get.select(seqType.getSimpleName, "where `id`='" + id(3) + "'")
                 tableToObject(row)(Manifest.classType(seqType))
-              }.asInstanceOf[List[List[T]]].map(_.head)
+              }.asInstanceOf[List[Iterable[T]]].map(_.head)
+              // Return the collection as its appropriate type
+              // We'll have to check for each type manually (do YOU know of a better way?)
+              val collectionType = t.asInstanceOf[ParameterizedType].getRawType.asInstanceOf[java.lang.Class[_]]
+              if(classOf[Seq[_]].isAssignableFrom(collectionType)) {
+                objs.toSeq
+              } else if(classOf[Set[_]].isAssignableFrom(collectionType)) {
+                objs.toSet
+              } else if(classOf[Collection[_]].isAssignableFrom(collectionType)) {
+                objs.asJava
+              } else {
+                objs
+              }
             }
           } else {
             // A sequence of assumed primitives
@@ -190,7 +214,8 @@ object Converter {
         tables = tables ++ (relTable :: classToStructure()(Manifest.classType(f.getType)))
         None
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
-                classOf[Seq[_]].isAssignableFrom(f.getType)) {
+                classOf[Seq[_]].isAssignableFrom(f.getType) ||
+                classOf[Set[_]].isAssignableFrom(f.getType)) {
         // Sequence collection
         tables = tables ++ unwrapSeq(classManifest[T].erasure.getSimpleName, f)
         None
