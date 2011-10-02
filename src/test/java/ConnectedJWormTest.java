@@ -2,6 +2,7 @@ import static org.junit.Assert.*;
 import org.junit.*;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import no.kvikshaug.worm.*;
 
@@ -48,6 +49,45 @@ public class ConnectedJWormTest {
 
         // Delete the object
         jfoo.delete();
+    }
+
+    @Test public void createInsertUpdateDeleteList() {
+        List<JBar> jbarList1 = new ArrayList<JBar>();
+        jbarList1.add(new JBar(1));
+        jbarList1.add(new JBar(2));
+
+        List<JBar> jbarList2 = new ArrayList<JBar>();
+        jbarList2.add(new JBar(4));
+        jbarList2.add(new JBar(5));
+
+        List<JListBar> jListBars = new ArrayList<JListBar>();
+        jListBars.add(new JListBar(jbarList1));
+        jListBars.add(new JListBar(jbarList2));
+
+        List<JBar> jbarList3 = new ArrayList<JBar>();
+        jbarList3.add(new JBar(50));
+        jbarList3.add(new JBar(60));
+
+        List<JListBar> newJListBars = new ArrayList<JListBar>();
+        newJListBars.add(new JListBar(jbarList3));
+
+        JListFoo j = new JListFoo(jListBars);
+
+        // Create and insert a 3-depth list
+        JWorm.create(JListFoo.class);
+        j.insert();
+
+        // Update the 2nd relation
+        j.setJListBars(newJListBars);
+        j.update();
+
+        // Get a list, verify its contents
+        List<JListFoo> list = JWorm.get(JListFoo.class);
+        assertTrue(list.size() == 1);
+        assertEquals(list.get(0).getJListBars().get(0).getJBars().get(0).getI(), 50);
+
+        // Delete the object
+        j.delete();
     }
 
     @After public void disconnect() {
