@@ -94,13 +94,56 @@ object Converter {
   def tableToObject[T <: Worm: ClassManifest](rows: List[List[AnyRef]]): List[T] = {
     val constructor = classManifest[T].erasure.getConstructors()(0)
     val objects = rows.map { originalRow =>
-      val row = originalRow.tail.zip(constructor.getParameterTypes).map { tuple =>
-        jvmType(tuple._1, tuple._2.asInstanceOf[Class[_]])
-      }.asInstanceOf[List[AnyRef]]
-      val obj = constructor.newInstance(row: _*).asInstanceOf[T]
+      // We'll iterate the constructor, and create objects on the fly.
+      // We use an iterator for when we need the next value from the original row
+      val it = originalRow.tail.iterator
+      // We need some extra field, so zip the construtor with the fields
+      val rows = classManifest[T].erasure.getDeclaredFields.zip(constructor.getGenericParameterTypes).map { x =>
+        val (f, t) = x
+        if(t.isInstanceOf[java.lang.Class[_]]) {
+          val classType = t.asInstanceOf[java.lang.Class[_]]
+          if(classOf[Worm].isAssignableFrom(classType)) {
+            // It's a Worm - create the Worm first
+            val inner = Worm.sql.get.select(classType.getSimpleName, "where " +
+              fieldName(classManifest[T].erasure.getSimpleName) + "='" + originalRow.head + "'")
+            // Select the first object. We will (should) always just select one
+            tableToObject(inner)(Manifest.classType(classType))(0)
+          } else {
+            // A primitive
+            jvmType(it.next, classType)
+          }
+        } else if(t.isInstanceOf[ParameterizedType]) {
+          // Assume this field is a sequence/collection
+          val seqType = t.asInstanceOf[ParameterizedType]
+                         .getActualTypeArguments()(0).asInstanceOf[java.lang.Class[_]]
+          if(classOf[Worm].isAssignableFrom(seqType)) {
+            // A sequence of Worms. Select each worm
+            val ids = Worm.sql.get.select(
+              classManifest[T].erasure.getSimpleName + seqType.getSimpleName + "s",
+              "where " + fieldName(classManifest[T].erasure.getSimpleName) + "='" + originalRow.head + "'")
+            if(ids.isEmpty) {
+              List()
+            } else {
+              val clause = new StringBuilder
+              clause.append("id='").append(ids.head(2)).append("'")
+              ids.tail.map(id => " or id='" + id(2) + "'").foreach(str => clause.append(str))
+              val rows = Worm.sql.get.select(seqType.getSimpleName, "where " + clause.toString)
+              tableToObject(rows)(Manifest.classType(seqType))
+            }
+          } else {
+            // A sequence of assumed primitives
+            // Potential optimization: Only need to select fieldName, not *
+            val rows = Worm.sql.get.select(
+              classManifest[T].erasure.getSimpleName + seqType.getSimpleName + "s",
+              "where " + fieldName(classManifest[T].erasure.getSimpleName) + "='" + originalRow.head + "'")
+            rows.map(r => r(2))
+          }
+        }
+      }.toList.asInstanceOf[List[AnyRef]]
+      val obj = constructor.newInstance(rows: _*).asInstanceOf[T]
       obj.wormDbId = Some(originalRow.head.asInstanceOf[Int].toLong)
       obj
-    }
+    }.asInstanceOf[List[T]]
     return objects
   }
 
