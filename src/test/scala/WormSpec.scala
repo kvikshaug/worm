@@ -22,6 +22,8 @@ case class C() extends Worm
 case class UPPERSEQ(var LOWER: Seq[lowerseq]) extends Worm
 case class lowerseq(val I: Int) extends Worm
 
+case class SetTest(val s: Set[C]) extends Worm
+
 class WormSpec extends Spec with ShouldMatchers {
 
   describe("A Worm, when initially disconnected, should") {
@@ -249,6 +251,17 @@ class WormSpec extends Spec with ShouldMatchers {
         list.size should be === 1
         list(0).LOWER should be === l2
         u.delete
+      }
+
+      it("create, insert, get, delete a class with Set") {
+        Worm.create[SetTest]
+        val set = Set(C())
+        val st = SetTest(set)
+        st.insert
+        val list = Worm.get[SetTest]
+        list.size should be === 1
+        list(0).s should be === set
+        st.delete
       }
     }
 
