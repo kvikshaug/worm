@@ -6,7 +6,7 @@ import java.lang.reflect.ParameterizedType
 
 import scala.collection.mutable.ListBuffer
 
-case class Table(name: String, rows: List[Row], hasDeps: List[Dependency], obj: Worm)
+case class Table(name: String, rows: List[Row], obj: Worm)
 case class Row(columns: List[Column])
 case class Column(name: String, value: Any, depends: Option[Dependency])
 
@@ -39,8 +39,7 @@ object Converter {
       that object. */
   def objectToTables(obj: Worm, dep: Option[SingleWormDependency] = None): Tuple2[List[Table], List[Dependency]] = {
     // Traverse all its fields, and figure out what columns to save
-    var theseDeps = ListBuffer[Dependency]() // dependencies for the current object
-    var otherDeps = ListBuffer[Dependency]() // all other dependencies
+    var deps = ListBuffer[Dependency]()
     var tables = ListBuffer[Table]()
     var columns = obj.getClass.getDeclaredFields.map { f =>
       f.setAccessible(true)
@@ -48,10 +47,10 @@ object Converter {
         // This field is another Worm. It will depend on this one
         val that = f.get(obj).asInstanceOf[Worm]
         val dep = SingleWormDependency(obj, that)
-        theseDeps += dep
+        deps += dep
         val ret = objectToTables(that, Some(dep))
         tables = tables ++ ret._1
-        otherDeps = otherDeps ++ ret._2
+        deps = deps ++ ret._2
         // No column, the dependency column will be in the remote object
         None
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
@@ -62,17 +61,16 @@ object Converter {
         if(classOf[Worm].isAssignableFrom(seqType)) {
           // A sequence of Worms. Make tables for each Worm
           val list = f.get(obj).asInstanceOf[Seq[Worm]] // i suspect this won't work with java.util.List
-          val dep = WormDependency(obj, list, obj.getClass.getSimpleName + seqType.getSimpleName + "s",
+          deps += WormDependency(obj, list, obj.getClass.getSimpleName + seqType.getSimpleName + "s",
             fieldName(obj.getClass.getSimpleName), f.getName)
-          theseDeps += dep
           list.foreach { worm =>
-            val ret = objectToTables(worm)
-            tables = tables ++ ret._1
-            otherDeps = otherDeps ++ ret._2
+            val (table, dep) = objectToTables(worm)
+            tables = tables ++ table
+            deps = deps ++ dep
           }
         } else {
           // A sequence of assumed primitives
-          otherDeps += PrimitiveDependency(obj, f.get(obj).asInstanceOf[Seq[AnyRef]], obj.getClass.getSimpleName + seqType.getSimpleName + "s", fieldName(obj.getClass.getSimpleName), f.getName)
+          deps += PrimitiveDependency(obj, f.get(obj).asInstanceOf[Seq[AnyRef]], obj.getClass.getSimpleName + seqType.getSimpleName + "s", fieldName(obj.getClass.getSimpleName), f.getName)
         }
         // No column needed for sequences
         None
@@ -85,8 +83,8 @@ object Converter {
     if(dep.isDefined) {
       columns = Column(fieldName(dep.get.parent.getClass.getSimpleName), null, dep) :: columns
     }
-    tables = Table(obj.getClass.getSimpleName, List(Row(columns)), theseDeps.toList, obj) +: tables
-    return (tables.toList, (theseDeps.toList ++ otherDeps.toList))
+    tables = Table(obj.getClass.getSimpleName, List(Row(columns)), obj) +: tables
+    return (tables.toList, deps.toList)
   }
 
   /** Take a list of rows from the database, the type they belong to and create
