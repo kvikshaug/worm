@@ -51,26 +51,17 @@ class SQL(val driver: String, val jdbcURL: String) {
     }
 
     // After all tables are inserted, IDs will be filled out, so insert dependency data
+    def insertDep(deps: List[Tuple2[Dependency, Any]]) = deps foreach { depTuple =>
+      val (dep, value) = depTuple
+      ids += ID(dep.tableName, performInsert(
+      dep.tableName, List(dep.parentName, dep.childName), List(dep.parent.wormDbId.get, value)
+      ))
+    }
+
     deps foreach { dep => dep match {
-      case SingleWormDependency(parent, child, tableName, parentName, childName) =>
-        val key = performInsert(tableName,
-          List(parentName, childName),
-          List(parent.wormDbId.get, child.wormDbId.get))
-        ids += ID(tableName, key)
-      case WormDependency(parent, children, tableName, parentName, childName) =>
-        children foreach { child =>
-          val key = performInsert(tableName,
-            List(parentName, childName),
-            List(parent.wormDbId.get, child.wormDbId.get))
-          ids += ID(tableName, key)
-        }
-      case PrimitiveDependency(parent, children, tableName, parentName, childName) =>
-        children foreach { child =>
-          val key = performInsert(tableName,
-            List(parentName, childName),
-            List(parent.wormDbId.get, child))
-          ids += ID(tableName, key)
-        }
+      case SingleWormDependency(_, child, _, _, _) => insertDep(List((dep, child.wormDbId.get)))
+      case WormDependency(_, children, _, _, _) => insertDep(children.map(c => (dep, c.wormDbId.get)).toList)
+      case PrimitiveDependency(_, children, _, _, _) => insertDep(children.map(c => (dep, c)).toList)
       }
     }
     ids.toList
@@ -84,23 +75,11 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   def delete(tables: List[Table], deps: List[Dependency]): Unit = {
     // Delete all the dependencies
-    deps foreach { dep => dep match {
-      case SingleWormDependency(parent, child, tableName, parentName, childName) =>
-          // It may not be defined if the user updated the field without calling update().
-          // (Which they shouldn't.)
-          performDelete(tableName, parent.wormDbId.get, parentName)
-      case WormDependency(parent, children, tableName, parentName, childName) =>
-        if(parent.wormDbId.isDefined) {
-          // It may not be defined if the user updated the field without calling update().
-          // (Which they shouldn't.)
-          performDelete(tableName, parent.wormDbId.get, parentName)
-        }
-      case PrimitiveDependency(parent, children, tableName, parentName, childName) =>
-        if(parent.wormDbId.isDefined) {
-          // It may not be defined if the user updated the field without calling update().
-          // (Which they shouldn't.)
-          performDelete(tableName, parent.wormDbId.get, parentName)
-        }
+    deps foreach { dep =>
+      if(dep.parent.wormDbId.isDefined) {
+        // It may not be defined if the user updated the field without calling update().
+        // (Which they shouldn't.)
+        performDelete(dep.tableName, dep.parent.wormDbId.get, dep.parentName)
       }
     }
     // Delete all the tables
