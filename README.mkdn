@@ -18,9 +18,3 @@ You can also call `get` on the Worm companion object to retreive lists or specif
 
 Worm is documented at the [github wiki](https://github.com/murr4y/worm/wiki).
 
-## TODO/Thoughts
-
-- It can't store lists or arrays.
-- You can't have two domain classes referring to each other, that would cause an infinite loop.
-- I haven't yet considered the possibilities for SQL injection
-
