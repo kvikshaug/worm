@@ -19,6 +19,9 @@ case class A(b: B) extends Worm
 case class B(c: C) extends Worm
 case class C() extends Worm
 
+case class UPPER(var LOWER: Seq[lower]) extends Worm
+case class lower(val I: Int) extends Worm
+
 class WormSpec extends Spec with ShouldMatchers {
 
   describe("A Worm, when initially disconnected, should") {
@@ -232,6 +235,20 @@ class WormSpec extends Spec with ShouldMatchers {
         a.wormDbId.isEmpty should be === true
         b.wormDbId.isEmpty should be === true
         c.wormDbId.isEmpty should be === true
+      }
+
+      it("create, insert, update, get, delete with wrong cases") {
+        Worm.create[UPPER]
+        val l1 = Seq(lower(5), lower(6))
+        val l2 = Seq(lower(40), lower(42))
+        val u = UPPER(l1)
+        u.insert
+        u.LOWER = l2
+        u.update
+        val list = Worm.get[UPPER]
+        list.size should be === 1
+        list(0).LOWER should be === l2
+        u.delete
       }
     }
 
