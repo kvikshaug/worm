@@ -52,7 +52,11 @@ class SQL(val driver: String, val jdbcURL: String) {
 
     // After all tables are inserted, IDs will be filled out, so insert dependency data
     deps foreach { dep => dep match {
-      case SingleWormDependency(_, _) =>
+      case SingleWormDependency(parent, child, tableName, parentName, childName) =>
+        val key = performInsert(tableName,
+          List(parentName, childName),
+          List(parent.wormDbId.get, child.wormDbId.get))
+        ids += ID(tableName, key)
       case WormDependency(parent, children, tableName, parentName, childName) =>
         children foreach { child =>
           val key = performInsert(tableName,
@@ -81,7 +85,10 @@ class SQL(val driver: String, val jdbcURL: String) {
   def delete(tables: List[Table], deps: List[Dependency]): Unit = {
     // Delete all the dependencies
     deps foreach { dep => dep match {
-      case SingleWormDependency(_, _) =>
+      case SingleWormDependency(parent, child, tableName, parentName, childName) =>
+          // It may not be defined if the user updated the field without calling update().
+          // (Which they shouldn't.)
+          performDelete(tableName, parent.wormDbId.get, parentName)
       case WormDependency(parent, children, tableName, parentName, childName) =>
         if(parent.wormDbId.isDefined) {
           // It may not be defined if the user updated the field without calling update().
