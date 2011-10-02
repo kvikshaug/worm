@@ -51,17 +51,20 @@ class SQL(val driver: String, val jdbcURL: String) {
     }
 
     // After all tables are inserted, IDs will be filled out, so insert dependency data
-    def insertDep(deps: List[Tuple2[Dependency, Any]]) = deps foreach { depTuple =>
-      val (dep, value) = depTuple
-      ids += ID(dep.tableName, performInsert(
-      dep.tableName, List(dep.parentName, dep.childName), List(dep.parent.wormDbId.get, value)
-      ))
+    def insertDep(dep: Dependency, values: List[Any]) = {
+      var orderCount = 0
+      values foreach { value =>
+        ids += ID(dep.tableName, performInsert(
+          dep.tableName, List(dep.parentName, dep.childName), List(dep.parent.wormDbId.get, value)
+        ))
+        orderCount += 1
+      }
     }
 
     deps foreach { dep => dep match {
-      case SingleWormDependency(_, child, _, _, _) => insertDep(List((dep, child.wormDbId.get)))
-      case WormDependency(_, children, _, _, _) => insertDep(children.map(c => (dep, c.wormDbId.get)).toList)
-      case PrimitiveDependency(_, children, _, _, _) => insertDep(children.map(c => (dep, c)).toList)
+      case SingleWormDependency(_, child, _, _, _) => insertDep(dep, List(child.wormDbId.get))
+      case WormDependency(_, children, _, _, _) => insertDep(dep, children.map(c => c.wormDbId.get).toList)
+      case PrimitiveDependency(_, children, _, _, _) => insertDep(dep, children.toList)
       }
     }
     ids.toList
