@@ -50,7 +50,7 @@ object Converter {
           fieldName(obj.getClass.getSimpleName), f.getName)
         val (table, dep) = objectToTables(that)
         tables = tables ++ table
-        deps = deps ++ deps
+        deps = deps ++ dep
         // No column, the dependency column will be in a separate table
         None
       } else if(classOf[java.util.Collection[_]].isAssignableFrom(f.getType) ||
