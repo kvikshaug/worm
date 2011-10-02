@@ -102,7 +102,7 @@ object Converter {
               classManifest[T].erasure.getSimpleName + classType.getSimpleName + "s",
               "where " + fieldName(classManifest[T].erasure.getSimpleName) + "='" + originalRow.head + "'")
             // Select the first object. We will (should) always just select one
-            val row = Worm.sql.get.select(classType.getSimpleName, "where id='" + id(0)(2) + "'")
+            val row = Worm.sql.get.select(classType.getSimpleName, "where `id`='" + id(0)(2) + "'")
             tableToObject(row)(Manifest.classType(classType))(0)
           } else {
             // A primitive
@@ -116,13 +116,13 @@ object Converter {
             // A sequence of Worms. Select each worm
             val ids = Worm.sql.get.select(
               classManifest[T].erasure.getSimpleName + seqType.getSimpleName + "s",
-              "where " + fieldName(classManifest[T].erasure.getSimpleName) + "='" + originalRow.head + "'")
+              "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'")
             if(ids.isEmpty) {
               List()
             } else {
               val clause = new StringBuilder
-              clause.append("id='").append(ids.head(2)).append("'")
-              ids.tail.map(id => " or id='" + id(2) + "'").foreach(str => clause.append(str))
+              clause.append("`id`='").append(ids.head(2)).append("'")
+              ids.tail.map(id => " or `id`='" + id(2) + "'").foreach(str => clause.append(str))
               val rows = Worm.sql.get.select(seqType.getSimpleName, "where " + clause.toString)
               tableToObject(rows)(Manifest.classType(seqType))
             }
@@ -131,7 +131,7 @@ object Converter {
             // Potential optimization: Only need to select fieldName, not *
             val rows = Worm.sql.get.select(
               classManifest[T].erasure.getSimpleName + seqType.getSimpleName + "s",
-              "where " + fieldName(classManifest[T].erasure.getSimpleName) + "='" + originalRow.head + "'")
+              "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'")
             rows.map(r => r(2))
           }
         }
@@ -203,7 +203,7 @@ object Converter {
   private def jvmTypeSQLite(obj: Any, t: Class[_]) = {
     if(classOf[Worm].isAssignableFrom(t)) {
       // Relation
-      val rows = Worm.sql.get.select(t.getSimpleName, "where id='" + obj.toString + "'")
+      val rows = Worm.sql.get.select(t.getSimpleName, "where `id`='" + obj.toString + "'")
       tableToObject(rows)(Manifest.classType(t))(0)
     } else {
       t.getSimpleName.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase match {
