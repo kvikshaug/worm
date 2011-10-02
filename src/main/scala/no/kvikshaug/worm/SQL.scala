@@ -56,7 +56,7 @@ class SQL(val driver: String, val jdbcURL: String) {
       var orderCount = 0
       values foreach { value =>
         ids += ID(dep.tableName, performInsert(
-          dep.tableName, List(dep.parentName, dep.childName), List(dep.parent.wormDbId.get, value)
+          dep.tableName, List("order", dep.parentName, dep.childName), List(orderCount, dep.parent.wormDbId.get, value)
         ))
         orderCount += 1
       }
@@ -114,7 +114,7 @@ class SQL(val driver: String, val jdbcURL: String) {
   }
 
   private def performDelete(tableName: String, id: Long, columnName: String = "id") = {
-    val query = String.format("delete from '%s' where %s='%s';", tableName, columnName, id.toString)
+    val query = String.format("delete from '%s' where `%s`='%s';", tableName, columnName, id.toString)
     connection.prepareStatement(query).execute
   }
 

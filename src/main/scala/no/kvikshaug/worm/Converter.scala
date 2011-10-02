@@ -100,9 +100,9 @@ object Converter {
             // It's a Worm - select and create the Worm first
             val id = Worm.sql.get.select(
               classManifest[T].erasure.getSimpleName + classType.getSimpleName + "s",
-              "where " + fieldName(classManifest[T].erasure.getSimpleName) + "='" + originalRow.head + "'")
+              "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'")
             // Select the first object. We will (should) always just select one
-            val row = Worm.sql.get.select(classType.getSimpleName, "where `id`='" + id(0)(2) + "'")
+            val row = Worm.sql.get.select(classType.getSimpleName, "where `id`='" + id(0)(3) + "'")
             if(row.isEmpty) {
               throw new InconsistentStateException("The relation from '" +
                 classManifest[T].erasure.getSimpleName + "' to '" + classType.getSimpleName + "' "+
@@ -122,23 +122,27 @@ object Converter {
             // A sequence of Worms. Select each worm
             val ids = Worm.sql.get.select(
               classManifest[T].erasure.getSimpleName + seqType.getSimpleName + "s",
-              "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'")
+              "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'" +
+              "order by `order` desc")
             if(ids.isEmpty) {
               List()
             } else {
-              val clause = new StringBuilder
-              clause.append("`id`='").append(ids.head(2)).append("'")
-              ids.tail.map(id => " or `id`='" + id(2) + "'").foreach(str => clause.append(str))
-              val rows = Worm.sql.get.select(seqType.getSimpleName, "where " + clause.toString)
-              tableToObject(rows)(Manifest.classType(seqType))
+              // We have the order in the ids list, but we can't select the right order based on it.
+              // For that reason, do one select query for each item in the right order.
+              // This is probably very much slower than being able to select all items in one statement.
+              ids.map { id =>
+                val row = Worm.sql.get.select(seqType.getSimpleName, "where `id`='" + id(3) + "'")
+                tableToObject(row)(Manifest.classType(seqType))
+              }.asInstanceOf[List[List[T]]].map(_.head)
             }
           } else {
             // A sequence of assumed primitives
             // Potential optimization: Only need to select fieldName, not *
             val rows = Worm.sql.get.select(
               classManifest[T].erasure.getSimpleName + seqType.getSimpleName + "s",
-              "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'")
-            rows.map(r => r(2))
+              "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'" +
+              "order by `order` desc")
+            rows.map(r => r(3))
           }
         }
       }.toList.asInstanceOf[List[AnyRef]]
@@ -159,6 +163,7 @@ object Converter {
         // It's a list of objects that extends Worm - create a separate table and a join table
         return TableStructure(containerName + seqType.getSimpleName + "s", List(
           ColumnStructure("id", pkType),
+          ColumnStructure("order", columnType("long")),
           ColumnStructure(fieldName(containerName), fkType),
           ColumnStructure(f.getName, fkType))) ::
             classToStructure()(Manifest.classType(seqType))
@@ -166,6 +171,7 @@ object Converter {
         // Assume it's a list of primitives - create a separate table for them
         return List(TableStructure(containerName + seqType.getSimpleName + "s", List(
           ColumnStructure("id", pkType),
+          ColumnStructure("order", columnType("long")),
           ColumnStructure(fieldName(containerName), fkType),
           ColumnStructure(f.getName, columnType(commonName(seqType.getSimpleName))))))
       }
@@ -178,6 +184,7 @@ object Converter {
         val relTable = TableStructure(
           classManifest[T].erasure.getSimpleName + f.getType.getSimpleName + "s", List(
             ColumnStructure("id", pkType),
+            ColumnStructure("order", columnType("long")),
             ColumnStructure(fieldName(classManifest[T].erasure.getSimpleName), fkType),
             ColumnStructure(f.getName, fkType)))
         tables = tables ++ (relTable :: classToStructure()(Manifest.classType(f.getType)))
