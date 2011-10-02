@@ -166,7 +166,7 @@ object Converter {
               classManifest[T].erasure.getSimpleName + seqType.getSimpleName + "s",
               "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'" +
               "order by `order` desc")
-            rows.map(r => r(3))
+            rows.map(r => jvmType(r(3), seqType))
           }
         }
       }.toList.asInstanceOf[List[AnyRef]]
