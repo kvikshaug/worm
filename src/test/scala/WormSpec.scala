@@ -19,8 +19,8 @@ case class A(b: B) extends Worm
 case class B(c: C) extends Worm
 case class C() extends Worm
 
-case class UPPER(var LOWER: Seq[lower]) extends Worm
-case class lower(val I: Int) extends Worm
+case class UPPERSEQ(var LOWER: Seq[lowerseq]) extends Worm
+case class lowerseq(val I: Int) extends Worm
 
 class WormSpec extends Spec with ShouldMatchers {
 
@@ -238,14 +238,14 @@ class WormSpec extends Spec with ShouldMatchers {
       }
 
       it("create, insert, update, get, delete with wrong cases") {
-        Worm.create[UPPER]
-        val l1 = Seq(lower(5), lower(6))
-        val l2 = Seq(lower(40), lower(42))
-        val u = UPPER(l1)
+        Worm.create[UPPERSEQ]
+        val l1 = Seq(lowerseq(5), lowerseq(6))
+        val l2 = Seq(lowerseq(40), lowerseq(42))
+        val u = UPPERSEQ(l1)
         u.insert
         u.LOWER = l2
         u.update
-        val list = Worm.get[UPPER]
+        val list = Worm.get[UPPERSEQ]
         list.size should be === 1
         list(0).LOWER should be === l2
         u.delete
