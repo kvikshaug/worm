@@ -20,7 +20,8 @@ class SQL(val driver: String, val jdbcURL: String) {
   }
 
   def select[T](table: String, sql: String): List[List[AnyRef]] = {
-    val statement = connection.prepareStatement(String.format("select * from '%s' %s;", table, sql))
+    val query = String.format("select * from '%s' %s;", table, sql)
+    val statement = connection.prepareStatement(query)
     statement.execute
     val resultset = statement.getResultSet()
     var rows = List[List[AnyRef]]()
