@@ -24,6 +24,14 @@ case class lowerseq(val I: Int) extends Worm
 
 case class SetTest(val s: Set[C]) extends Worm
 
+case class ListOfInts(ints: List[Int]) extends Worm
+case class ListOfChars(chars: List[Char]) extends Worm
+case class ListOfStrings(strings: List[String]) extends Worm
+
+case class ListOfJavaInts(ints: List[java.lang.Integer]) extends Worm
+case class ListOfJavaStrings(strings: List[java.lang.String]) extends Worm
+case class ListOfJavaChars(chars: List[java.lang.Character]) extends Worm
+
 class WormSpec extends Spec with ShouldMatchers {
 
   describe("A Worm, when initially disconnected, should") {
@@ -263,6 +271,58 @@ class WormSpec extends Spec with ShouldMatchers {
         list(0).s should be === set
         st.delete
       }
+
+      it("fail when creating lists of primitives") {
+        evaluating { Worm.create[ListOfInts] } should produce [UnsupportedTypeException]
+        evaluating { Worm.create[ListOfChars] } should produce [UnsupportedTypeException]
+      }
+
+      it("create list of strings") {
+        Worm.create[ListOfStrings]
+        Worm.create[ListOfJavaStrings]
+      }
+
+      it("insert, get, delete list of strings") {
+        val ls = ListOfStrings(List("hello", "world"))
+        ls.insert
+        val listLs = Worm.get[ListOfStrings]
+        listLs.size should be === 1
+        listLs(0) should be === ls
+        ls.delete
+      }
+
+      it("insert, get, delete list of java strings") {
+        val ljs = ListOfJavaStrings(List("hello", "java", "world"))
+        ljs.insert
+        val listLjs = Worm.get[ListOfJavaStrings]
+        listLjs.size should be === 1
+        listLjs(0) should be === ljs
+        ljs.delete
+      }
+
+      it("create a list of java primitives") {
+        Worm.create[ListOfJavaInts]
+        Worm.create[ListOfJavaChars]
+      }
+
+      it("insert, get, delete list of java ints") {
+        val ints = ListOfJavaInts(List(1, 2, 3))
+        ints.insert
+        val listInts = Worm.get[ListOfJavaInts]
+        listInts.size should be === 1
+        listInts(0) should be === ints
+        ints.delete
+      }
+
+      it("insert, get, delete list of java chars") {
+        val chars = ListOfJavaChars(List('a', 'b', 'c'))
+        chars.insert
+        val listChars = Worm.get[ListOfJavaChars]
+        listChars.size should be === 1
+        listChars(0) should be === chars
+        chars.delete
+      }
+
     }
 
     it("successfully disconnect") {
