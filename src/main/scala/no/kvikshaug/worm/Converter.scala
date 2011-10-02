@@ -103,6 +103,12 @@ object Converter {
               "where " + fieldName(classManifest[T].erasure.getSimpleName) + "='" + originalRow.head + "'")
             // Select the first object. We will (should) always just select one
             val row = Worm.sql.get.select(classType.getSimpleName, "where `id`='" + id(0)(2) + "'")
+            if(row.isEmpty) {
+              throw new InconsistentStateException("The relation from '" +
+                classManifest[T].erasure.getSimpleName + "' to '" + classType.getSimpleName + "' "+
+                "contains a reference which doesn't exist in the DB. " +
+                "Did you call 'delete' on the related object?")
+            }
             tableToObject(row)(Manifest.classType(classType))(0)
           } else {
             // A primitive
