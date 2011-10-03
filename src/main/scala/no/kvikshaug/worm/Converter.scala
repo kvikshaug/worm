@@ -48,7 +48,7 @@ object Converter {
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // This field is another Worm. It will depend on this one
         val that = f.get(obj).asInstanceOf[Worm]
-        deps += SingleWormDependency(obj, that, obj.getClass.getSimpleName + f.getType.getSimpleName + "s",
+        deps += SingleWormDependency(obj, that, obj.getClass.getSimpleName + f.getType.getSimpleName,
           fieldName(obj.getClass.getSimpleName), f.getName)
         val (table, dep) = objectToTables(that)
         tables = tables ++ table
@@ -73,7 +73,7 @@ object Converter {
             throw new UnsupportedTypeException("I don't know how to create a " +
               "generic collection of type '" + f.getType + "'.")
           }
-          deps += WormDependency(obj, list, obj.getClass.getSimpleName + seqType.getSimpleName + "s",
+          deps += WormDependency(obj, list, obj.getClass.getSimpleName + seqType.getSimpleName,
             fieldName(obj.getClass.getSimpleName), f.getName)
           list.foreach { worm =>
             val (table, dep) = objectToTables(worm)
@@ -82,7 +82,7 @@ object Converter {
           }
         } else {
           // A sequence of assumed primitives
-          deps += PrimitiveDependency(obj, f.get(obj).asInstanceOf[Iterable[AnyRef]], obj.getClass.getSimpleName + seqType.getSimpleName + "s", fieldName(obj.getClass.getSimpleName), f.getName)
+          deps += PrimitiveDependency(obj, f.get(obj).asInstanceOf[Iterable[AnyRef]], obj.getClass.getSimpleName + seqType.getSimpleName, fieldName(obj.getClass.getSimpleName), f.getName)
         }
         // No column needed for sequences
         None
@@ -111,7 +111,7 @@ object Converter {
           if(classOf[Worm].isAssignableFrom(classType)) {
             // It's a Worm - select and create the Worm first
             val id = Worm.sql.get.select(
-              classManifest[T].erasure.getSimpleName + classType.getSimpleName + "s",
+              classManifest[T].erasure.getSimpleName + classType.getSimpleName,
               "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'")
             // Select the first object. We will (should) always just select one
             val row = Worm.sql.get.select(classType.getSimpleName, "where `id`='" + id(0)(3) + "'")
@@ -133,7 +133,7 @@ object Converter {
           if(classOf[Worm].isAssignableFrom(seqType)) {
             // A sequence of Worms. Select each worm
             val ids = Worm.sql.get.select(
-              classManifest[T].erasure.getSimpleName + seqType.getSimpleName + "s",
+              classManifest[T].erasure.getSimpleName + seqType.getSimpleName,
               "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'" +
               "order by `order` desc")
             if(ids.isEmpty) {
@@ -163,7 +163,7 @@ object Converter {
             // A sequence of assumed primitives
             // Potential optimization: Only need to select fieldName, not *
             val rows = Worm.sql.get.select(
-              classManifest[T].erasure.getSimpleName + seqType.getSimpleName + "s",
+              classManifest[T].erasure.getSimpleName + seqType.getSimpleName,
               "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'" +
               "order by `order` desc")
             rows.map(r => jvmType(r(3), seqType))
@@ -185,7 +185,7 @@ object Converter {
                      .getActualTypeArguments()(0).asInstanceOf[java.lang.Class[_]]
       if(classOf[Worm].isAssignableFrom(seqType)) {
         // It's a list of objects that extends Worm - create a separate table and a join table
-        return TableStructure(containerName + seqType.getSimpleName + "s", List(
+        return TableStructure(containerName + seqType.getSimpleName, List(
           ColumnStructure("id", pkType),
           ColumnStructure("order", columnType("long")),
           ColumnStructure(fieldName(containerName), fkType),
@@ -193,7 +193,7 @@ object Converter {
             classToStructure()(Manifest.classType(seqType))
       } else {
         // Assume it's a list of primitives - create a separate table for them
-        return List(TableStructure(containerName + seqType.getSimpleName + "s", List(
+        return List(TableStructure(containerName + seqType.getSimpleName, List(
           ColumnStructure("id", pkType),
           ColumnStructure("order", columnType("long")),
           ColumnStructure(fieldName(containerName), fkType),
@@ -206,7 +206,7 @@ object Converter {
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // Relation, create a join table
         val relTable = TableStructure(
-          classManifest[T].erasure.getSimpleName + f.getType.getSimpleName + "s", List(
+          classManifest[T].erasure.getSimpleName + f.getType.getSimpleName, List(
             ColumnStructure("id", pkType),
             ColumnStructure("order", columnType("long")),
             ColumnStructure(fieldName(classManifest[T].erasure.getSimpleName), fkType),
@@ -228,7 +228,7 @@ object Converter {
 
   /* DB-engine specific functions */
 
-  private def fieldName(name: String) = name.head.toLower + name.tail + 's'
+  private def fieldName(name: String) = name.head.toLower + name.tail
 
   private def commonName(name: String) =
     name.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase
