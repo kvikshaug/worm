@@ -10,11 +10,15 @@ It is written in [Scala](http://www.scala-lang.org/), built with [SBT](https://g
 
 ## Usage
 
-You just make your classes extend one in our library called `Worm`, create the tables in your db, and then you can call methods like `insert`, `update` and `delete` on your objects.
+You just make your classes extend one in our library called `Worm`, and create the tables in your DB.
 
-You can also call `get` on the Worm companion object to retreive lists or specific objects (rows) that are already stored.
+Then you can do [CRUD](http://en.wikipedia.org/wiki/Create,_read,_update_and_delete) by:
+
+1. Calling `insert`, `update` and `delete` on your objects
+2. Calling `get` on the Worm companion object to retreive lists of objects (rows)
 
 ## Documentation
 
 Worm is documented at the [github wiki](https://github.com/murr4y/worm/wiki).
 
+If you want to know if Worm is right for you, read about its [philosophy](https://github.com/murr4y/worm/wiki/Philosophy).
