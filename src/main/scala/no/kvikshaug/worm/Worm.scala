@@ -14,12 +14,15 @@ object Worm {
     if(sql isDefined) { sql.get.disconnect; sql = None }
   }
 
-  def create[T <: Worm: ClassManifest]: Unit = {
+  def create[T <: Worm: ClassManifest]: Unit = createTable[T](false)
+  def printSchema[T <: Worm: ClassManifest]: Unit = createTable[T](true)
+
+  private def createTable[T <: Worm: ClassManifest](print: Boolean): Unit = {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
     val structure = Converter.classToStructure[T]()
-    sql.get.create(structure)
+    sql.get.create(structure, print)
   }
 
   def get[T <: Worm: ClassManifest]: List[T] = getWith[T]("")
@@ -34,7 +37,8 @@ object Worm {
 }
 
 object JWorm {
-  def create[T <: Worm](c: Class[_ <: Worm]): Unit = { Worm.create(Manifest.classType(c)) }    
+  def create[T <: Worm](c: Class[_ <: Worm]): Unit = { Worm.create(Manifest.classType(c)) }
+  def printSchema[T <: Worm](c: Class[_ <: Worm]): Unit = { Worm.printSchema(Manifest.classType(c)) }
   def getWith[T <: Worm](c: Class[_ <: Worm], sql: String): java.util.List[T] =
     Worm.getWith[T](sql)(Manifest.classType(c)).asJava
   def get[T <: Worm](c: Class[_ <: Worm]): java.util.List[T] = Worm.get[T](Manifest.classType(c)).asJava

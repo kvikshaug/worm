@@ -10,12 +10,14 @@ class SQL(val driver: String, val jdbcURL: String) {
 
   def disconnect = connection.close
 
-  def create(tables: List[TableStructure]) = {
+  def create(tables: List[TableStructure], print: Boolean) = {
     tables foreach { table =>
       val query = String.format("create table if not exists %s (%s);",
         table.name, commaize(table.columns.map(r => "`" + r.name + "` " + r.typeName)))
-      val statement = connection.prepareStatement(query)
-      statement.execute
+      print match {
+        case true  => println(query)
+        case false => connection.prepareStatement(query).execute
+      }
     }
   }
 
