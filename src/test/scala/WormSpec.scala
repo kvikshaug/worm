@@ -32,6 +32,14 @@ case class ListOfJavaInts(ints: List[java.lang.Integer]) extends Worm
 case class ListOfJavaStrings(strings: List[java.lang.String]) extends Worm
 case class ListOfJavaChars(chars: List[java.lang.Character]) extends Worm
 
+class OuterClass {
+  case class InnerClassOfClass(var woop: String) extends Worm
+}
+
+object OuterObject {
+  case class InnerClassOfObject(var woop: String) extends Worm
+}
+
 class WormSpec extends Spec with ShouldMatchers {
 
   describe("A Worm, when initially disconnected, should") {
@@ -321,6 +329,34 @@ class WormSpec extends Spec with ShouldMatchers {
         listChars.size should be === 1
         listChars(0) should be === chars
         chars.delete
+      }
+
+      val outer = new OuterClass
+      val innerOfClass = new outer.InnerClassOfClass("hello")
+      val innerOfObject = new OuterObject.InnerClassOfObject("hello")
+
+      it("create, insert, update, get, delete a class in a class does NOT work") {
+        evaluating {
+          Worm.create[outer.InnerClassOfClass]
+          innerOfClass.insert
+          innerOfClass.woop = "goodbye"
+          innerOfClass.update
+          val list = Worm.get[outer.InnerClassOfClass]
+          list.size should be === 1
+          list(0) should be === innerOfClass
+          innerOfClass.delete
+        } should produce [UnsupportedOperationException]
+      }
+
+      it("create, insert, update, get, delete a class in an object") {
+        Worm.create[OuterObject.InnerClassOfObject]
+        innerOfObject.insert
+        innerOfObject.woop = "goodbye"
+        innerOfObject.update
+        val list = Worm.get[OuterObject.InnerClassOfObject]
+        list.size should be === 1
+        list(0) should be === innerOfObject
+        innerOfObject.delete
       }
 
     }
