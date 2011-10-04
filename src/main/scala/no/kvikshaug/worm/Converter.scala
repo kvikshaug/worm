@@ -203,6 +203,12 @@ object Converter {
     var tables = List[TableStructure]()
     val columns = ColumnStructure("id", pkType) :: classManifest[T].erasure.getDeclaredFields.map { f =>
       f.setAccessible(true)
+      // We don't support inner classes of classes
+      if(classManifest[T].erasure.getDeclaringClass != null && f.getName == "$outer") {
+        throw new UnsupportedOperationException("Worm does not support inner classes. It does support " +
+          "static nested classes (classes defined in companion objects), read more about why in the " +
+          "documentation.")
+      }
       if(classOf[Worm].isAssignableFrom(f.getType)) {
         // Relation, create a join table
         val relTable = TableStructure(
