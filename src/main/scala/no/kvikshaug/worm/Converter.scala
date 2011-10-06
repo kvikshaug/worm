@@ -253,24 +253,18 @@ object Converter {
   }
 
   private def jvmTypeSQLite(obj: Any, t: Class[_]) = {
-    if(classOf[Worm].isAssignableFrom(t)) {
-      // Relation
-      val rows = Worm.sql.get.select(t.getSimpleName, "where `id`='" + obj.toString + "'")
-      tableToObject(rows)(Manifest.classType(t))(0)
-    } else {
-      t.getSimpleName.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase match {
-        case "double"  => obj.asInstanceOf[java.lang.Double]
-        case "float"   => obj.asInstanceOf[java.lang.Double].floatValue
-        case "long"    => obj.asInstanceOf[java.lang.Integer].longValue
-        case "int"     => obj.asInstanceOf[java.lang.Integer]
-        case "short"   => obj.asInstanceOf[java.lang.Integer].shortValue
-        case "byte"    => obj.asInstanceOf[java.lang.Integer].byteValue
-        case "boolean" => java.lang.Boolean.parseBoolean(obj.asInstanceOf[java.lang.String])
-        case "char"    => obj.asInstanceOf[java.lang.String].charAt(0)
-        case "string"  => obj.asInstanceOf[java.lang.String]
-        case _         => throw new UnsupportedTypeException("Cannot create an object of type '" +
-          t.getName + "'")
-      }
+    t.getSimpleName.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase match {
+      case "double"  => obj.asInstanceOf[java.lang.Double]
+      case "float"   => obj.asInstanceOf[java.lang.Double].floatValue
+      case "long"    => obj.asInstanceOf[java.lang.Integer].longValue
+      case "int"     => obj.asInstanceOf[java.lang.Integer]
+      case "short"   => obj.asInstanceOf[java.lang.Integer].shortValue
+      case "byte"    => obj.asInstanceOf[java.lang.Integer].byteValue
+      case "boolean" => java.lang.Boolean.parseBoolean(obj.asInstanceOf[java.lang.String])
+      case "char"    => obj.asInstanceOf[java.lang.String].charAt(0)
+      case "string"  => obj.asInstanceOf[java.lang.String]
+      case _         => throw new UnsupportedTypeException("Cannot create an object of type '" +
+        t.getName + "'")
     }
   }
 
