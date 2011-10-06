@@ -359,6 +359,14 @@ class WormSpec extends Spec with ShouldMatchers {
         innerOfObject.delete
       }
 
+      it("update a retrieved object") {
+        foo.insert
+        val list = Worm.get[Foo]
+        list(0).d = 981.14
+        list(0).update
+        list(0).delete
+      }
+
     }
 
     it("successfully disconnect") {
