@@ -98,7 +98,15 @@ object Converter {
   /** Take a list of rows from the database, the type they belong to and create
       objects out of the data in the rows */
   def tableToObject[T <: Worm: ClassManifest](rows: List[List[AnyRef]]): List[T] = {
-    val constructor = classManifest[T].erasure.getConstructors()(0)
+    val constructors = classManifest[T].erasure.getConstructors()
+    if(constructors.isEmpty) {
+      throw new IllegalArgumentException(classManifest[T].erasure.getSimpleName + " has no public " +
+        "constructor that can be used to create it.")
+    } else if(constructors.size > 1) {
+      throw new IllegalArgumentException(classManifest[T].erasure.getSimpleName + " has more than " +
+        "one constructor, how am I supposed to know which one to use to create it?")
+    }
+    val constructor = constructors(0)
     val objects = rows.map { originalRow =>
       // We'll iterate the constructor, and create objects on the fly.
       // We use an iterator for when we need the next value from the original row
