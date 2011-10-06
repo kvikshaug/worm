@@ -97,7 +97,8 @@ object Converter {
 
   /** Take a list of rows from the database, the type they belong to and create
       objects out of the data in the rows */
-  def tableToObject[T <: Worm: ClassManifest](rows: List[List[AnyRef]]): List[T] = {
+  def tableToObject[T <: Worm: ClassManifest](rows: List[List[AnyRef]]): (List[T], List[ID]) = {
+    var tableIds = ListBuffer[ID]()
     val constructors = classManifest[T].erasure.getConstructors()
     if(constructors.isEmpty) {
       throw new IllegalArgumentException(classManifest[T].erasure.getSimpleName + " has no public " +
@@ -121,6 +122,8 @@ object Converter {
             val id = Worm.sql.get.select(
               classManifest[T].erasure.getSimpleName + classType.getSimpleName,
               "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'")
+            tableIds += ID(classManifest[T].erasure.getSimpleName + classType.getSimpleName,
+              id(0)(3).asInstanceOf[Int].toLong)
             // Select the first object. We will (should) always just select one
             val row = Worm.sql.get.select(classType.getSimpleName, "where `id`='" + id(0)(3) + "'")
             if(row.isEmpty) {
@@ -129,7 +132,9 @@ object Converter {
                 "contains a reference which doesn't exist in the DB. " +
                 "Did you call 'delete' on the related object?")
             }
-            tableToObject(row)(Manifest.classType(classType))(0)
+            val (obj, thoseIds) = tableToObject(row)(Manifest.classType(classType))
+            tableIds = tableIds ++ thoseIds
+            obj(0)
           } else {
             // A primitive
             jvmType(it.next, classType)
@@ -151,8 +156,12 @@ object Converter {
               // For that reason, do one select query for each item in the right order.
               // This is probably very much slower than being able to select all items in one statement.
               val objs = ids.map { id =>
+                tableIds += ID(classManifest[T].erasure.getSimpleName + seqType.getSimpleName,
+                  id(0).asInstanceOf[Int].toLong)
                 val row = Worm.sql.get.select(seqType.getSimpleName, "where `id`='" + id(3) + "'")
-                tableToObject(row)(Manifest.classType(seqType))
+                val (inner, thoseIds) = tableToObject(row)(Manifest.classType(seqType))
+                tableIds = tableIds ++ thoseIds
+                inner
               }.asInstanceOf[List[Iterable[T]]].map(_.head)
               // Return the collection as its appropriate type
               // We'll have to check for each type manually (do YOU know of a better way?)
@@ -174,15 +183,18 @@ object Converter {
               classManifest[T].erasure.getSimpleName + seqType.getSimpleName,
               "where `" + fieldName(classManifest[T].erasure.getSimpleName) + "`='" + originalRow.head + "'" +
               "order by `order` desc")
+            rows foreach(r => tableIds += ID(classManifest[T].erasure.getSimpleName + seqType.getSimpleName, r(0).asInstanceOf[Int].toLong))
             rows.map(r => jvmType(r(3), seqType))
           }
         }
       }.toList.asInstanceOf[List[AnyRef]]
+      tableIds += ID(classManifest[T].erasure.getSimpleName, originalRow.head.asInstanceOf[Int].toLong)
       val obj = constructor.newInstance(rows: _*).asInstanceOf[T]
       obj.wormDbId = Some(originalRow.head.asInstanceOf[Int].toLong)
+      obj.wormDbIds = Some(tableIds.toList)
       obj
     }.asInstanceOf[List[T]]
-    return objects
+    return (objects, tableIds.toList)
   }
 
   /** Create a list of TableStructures corresponding to the given class type,

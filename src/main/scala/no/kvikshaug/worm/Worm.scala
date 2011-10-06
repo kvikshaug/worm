@@ -32,7 +32,7 @@ object Worm {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
     val rows = sql.get.select(classManifest[T].erasure.getSimpleName, sqlString)
-    Converter.tableToObject[T](rows)
+    Converter.tableToObject[T](rows)._1
   }
 }
 
