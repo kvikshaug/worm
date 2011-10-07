@@ -1,6 +1,6 @@
 name := "Worm"
 
-version := "0.9"
+version := "0.10"
 
 scalaVersion := "2.9.1"
 
