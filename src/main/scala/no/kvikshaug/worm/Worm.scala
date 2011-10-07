@@ -40,8 +40,8 @@ object JWorm {
   def create[T <: Worm](c: Class[_ <: Worm]): Unit = { Worm.create(Manifest.classType(c)) }
   def printSchema[T <: Worm](c: Class[_ <: Worm]): Unit = { Worm.printSchema(Manifest.classType(c)) }
   def getWith[T <: Worm](c: Class[_ <: Worm], sql: String): java.util.List[T] =
-    Worm.getWith[T](sql)(Manifest.classType(c)).asJava
-  def get[T <: Worm](c: Class[_ <: Worm]): java.util.List[T] = Worm.get[T](Manifest.classType(c)).asJava
+    Worm.getWith[T](sql)(Manifest.classType(c)).toBuffer.asJava
+  def get[T <: Worm](c: Class[_ <: Worm]): java.util.List[T] = getWith(c, "")
 }
 
 class Worm {
