@@ -274,8 +274,8 @@ object Converter {
     case "boolean" => java.lang.Boolean.parseBoolean(obj.asInstanceOf[java.lang.String])
     case "char"    => obj.asInstanceOf[java.lang.String].charAt(0)
     case "string"  => obj.asInstanceOf[java.lang.String]
-    case _         => throw new UnsupportedTypeException("Cannot create an object of type '" +
-      t.getName + "'")
+    case _         => throw new UnsupportedTypeException("Cannot retrieve an object of " +
+      "unknown type '" + t.getName + "'")
   }
 
   // Primary key type
