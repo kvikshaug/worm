@@ -267,7 +267,14 @@ object Converter {
   private def jvmTypeSQLite(obj: Any, t: Class[_]) = commonName(t.getSimpleName) match {
     case "double"  => obj.asInstanceOf[java.lang.Double]
     case "float"   => obj.asInstanceOf[java.lang.Double].floatValue
-    case "long"    => obj.asInstanceOf[java.lang.Integer].longValue
+    case "long"    =>
+      if(obj.isInstanceOf[java.lang.Long]) {
+        obj.asInstanceOf[java.lang.Long]
+      } else {
+        // If the value is below the max int value, it will be an instance of
+        // Int and uncastable to Long, so we need to call longValue
+        obj.asInstanceOf[java.lang.Integer].longValue
+      }
     case "int"     => obj.asInstanceOf[java.lang.Integer]
     case "short"   => obj.asInstanceOf[java.lang.Integer].shortValue
     case "byte"    => obj.asInstanceOf[java.lang.Integer].byteValue
