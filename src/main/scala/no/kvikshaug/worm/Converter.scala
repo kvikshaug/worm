@@ -224,7 +224,8 @@ object Converter {
     val columns = ColumnStructure("id", pkType) :: classManifest[T].erasure.getDeclaredFields.map { f =>
       f.setAccessible(true)
       // We don't support inner classes of classes
-      if(classManifest[T].erasure.getDeclaringClass != null && f.getName == "$outer") {
+      if(classManifest[T].erasure.getDeclaringClass != null &&
+        (f.getName == "$outer" || f.getName == "$this$0")) {
         throw new UnsupportedOperationException("Worm does not support inner classes. It does support " +
           "static nested classes (classes defined in companion objects), read more about why in the " +
           "documentation.")
