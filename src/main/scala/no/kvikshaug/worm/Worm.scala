@@ -1,10 +1,12 @@
 package no.kvikshaug.worm
 
+import java.util.concurrent.locks.ReentrantLock
 import scala.collection.JavaConverters._
 
 case class ID(tableName: String, id: Long)
 
 object Worm {
+  val lock = new ReentrantLock
   var sql: Option[SQL] = None
   def connect(db: String, driver: String, jdbcURL: String) {
     Converter.setDb(db)
@@ -21,8 +23,13 @@ object Worm {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val structure = Converter.classToStructure[T]()
-    sql.get.create(structure, print)
+    lock.lock
+    try {
+      val structure = Converter.classToStructure[T]()
+      sql.get.create(structure, print)
+    } finally {
+      lock.unlock
+    }
   }
 
   def get[T <: Worm: ClassManifest]: List[T] = getWith[T]("")
@@ -31,8 +38,13 @@ object Worm {
     if(sql isEmpty) {
       throw new NotConnectedException("You need to connect to the database before using it.")
     }
-    val rows = sql.get.select(classManifest[T].erasure.getSimpleName, sqlString)
-    Converter.tableToObject[T](rows)._1
+    lock.lock
+    try {
+      val rows = sql.get.select(classManifest[T].erasure.getSimpleName, sqlString)
+      Converter.tableToObject[T](rows)._1
+    } finally {
+      lock.unlock
+    }
   }
 }
 
@@ -61,9 +73,14 @@ class Worm {
       throw new IllegalStateException("This object already exists in the database, its ID is: " +
         wormDbId.get + ".")
     }
-    val (tables, deps) = Converter.objectToTables(this)
-    val ids = Worm.sql.get.insert(tables, deps)
-    wormDbIds = Some(ids)
+    Worm.lock.lock
+    try {
+      val (tables, deps) = Converter.objectToTables(this)
+      val ids = Worm.sql.get.insert(tables, deps)
+      wormDbIds = Some(ids)
+    } finally {
+      Worm.lock.unlock
+    }
   }
 
   def update(): Unit = {
@@ -73,9 +90,14 @@ class Worm {
     if(wormDbId.isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val (tables, deps) = Converter.objectToTables(this)
-    val ids = Worm.sql.get.update(wormDbIds.get, tables, deps)
-    wormDbIds = Some(ids)
+    Worm.lock.lock
+    try {
+      val (tables, deps) = Converter.objectToTables(this)
+      val ids = Worm.sql.get.update(wormDbIds.get, tables, deps)
+      wormDbIds = Some(ids)
+    } finally {
+      Worm.lock.unlock
+    }
   }
 
   def delete(): Unit = {
@@ -85,7 +107,12 @@ class Worm {
     if(wormDbId isEmpty) {
       throw new IllegalStateException("This object doesn't exist in the database!")
     }
-    val (tables, deps) = Converter.objectToTables(this)
-    Worm.sql.get.delete(tables, deps)
+    Worm.lock.lock
+    try {
+      val (tables, deps) = Converter.objectToTables(this)
+      Worm.sql.get.delete(tables, deps)
+    } finally {
+      Worm.lock.unlock
+    }
   }
 }
