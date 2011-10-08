@@ -26,13 +26,13 @@ class SQL(val driver: String, val jdbcURL: String) {
     val statement = connection.prepareStatement(query)
     statement.execute
     val resultset = statement.getResultSet()
-    var rows = List[List[AnyRef]]()
+    var rows = ListBuffer[List[AnyRef]]()
     while(resultset.next()) {
       val row = for(i <- 1 to resultset.getMetaData().getColumnCount())
         yield resultset.getObject(i)
-      rows = row.toList :: rows
+      rows += row.toList
     }
-    rows
+    rows.toList
   }
 
   def insert(tables: List[Table], deps: List[Dependency]): List[ID] = {
