@@ -253,12 +253,12 @@ object Converter {
     TableStructure(classManifest[T].erasure.getSimpleName, columns) :: tables
   }
 
-  /* DB-engine specific functions */
-
   private def fieldName(name: String) = name.head.toLower + name.tail
 
   private def commonName(name: String) =
     name.replaceAll("(?i)integer", "int").replaceAll("(?i)character", "char").toLowerCase
+
+  /* DB-engine specific functions */
 
   // Cast and if necessary convert objects to their applicable types
   private def jvmType(obj: Any, t: Class[_]) = db match {
