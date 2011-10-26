@@ -103,7 +103,7 @@ class SQL(val driver: String, val jdbcURL: String) {
     val query = String.format("insert into '%s' (%s) values (%s);",
       table,
       commaize("`id`" :: names.map("`" + _ + "`").toList),
-      commaize("NULL" :: values.map("'" + _ + "'").toList)
+      commaize("NULL" :: values.map(v => "'" + Sanitizer.sanitize(v.toString) + "'").toList)
     )
     val statement = connection.prepareStatement(query)
     statement.execute
