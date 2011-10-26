@@ -98,7 +98,7 @@ object Converter {
   /** Take a list of rows from the database, the type they belong to and create
       objects out of the data in the rows */
   def tableToObject[T <: Worm: ClassManifest](rows: List[List[AnyRef]]): (List[T], List[ID]) = {
-    var tableIds = ListBuffer[ID]()
+    var allTableIds = ListBuffer[ID]()
     val constructors = classManifest[T].erasure.getConstructors()
     if(constructors.isEmpty) {
       throw new IllegalArgumentException(classManifest[T].erasure.getSimpleName + " has no public " +
@@ -109,6 +109,7 @@ object Converter {
     }
     val constructor = constructors(0)
     val objects = rows.map { originalRow =>
+      var tableIds = ListBuffer[ID]()
       // We'll iterate the constructor, and create objects on the fly.
       // We use an iterator for when we need the next value from the original row
       val it = originalRow.tail.iterator
@@ -192,9 +193,10 @@ object Converter {
       val obj = constructor.newInstance(rows: _*).asInstanceOf[T]
       obj.wormDbId = Some(originalRow.head.asInstanceOf[Int].toLong)
       obj.wormDbIds = Some(tableIds.toList)
+      allTableIds = allTableIds ++ tableIds
       obj
     }.asInstanceOf[List[T]]
-    return (objects, tableIds.toList)
+    return (objects, allTableIds.toList)
   }
 
   /** Create a list of TableStructures corresponding to the given class type,
