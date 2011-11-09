@@ -16,7 +16,10 @@ class SQL(val driver: String, val jdbcURL: String) {
         table.name, commaize(table.columns.map(r => "`" + r.name + "` " + r.typeName)))
       print match {
         case true  => println(query)
-        case false => connection.prepareStatement(query).execute
+        case false =>
+          val statement = connection.prepareStatement(query)
+          statement.execute
+          statement.close
       }
     }
   }
@@ -32,6 +35,7 @@ class SQL(val driver: String, val jdbcURL: String) {
         yield resultset.getObject(i)
       rows += row.toList
     }
+    statement.close
     rows.toList
   }
 
@@ -112,12 +116,15 @@ class SQL(val driver: String, val jdbcURL: String) {
       throw new SQLException("The SQL driver didn't throw any exception, but it also said that no " +
         "keys were inserted!\nNot really sure how that happened, or what I (the ORM) can do about it.")
     }
+    statement.close
     key.getLong(1)
   }
 
   private def performDelete(tableName: String, id: Long, columnName: String = "id") = {
     val query = String.format("delete from '%s' where `%s`='%s';", tableName, columnName, id.toString)
-    connection.prepareStatement(query).execute
+    val statement = connection.prepareStatement(query)
+    statement.execute
+    statement.close
   }
 
   private def commaize(list: List[_ <: Any]): String = list match {
